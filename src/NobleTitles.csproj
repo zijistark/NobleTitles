@@ -71,12 +71,14 @@
   </ItemGroup>
   <!-- Files & Classes -->
   <ItemGroup>
-    <Compile Include="GameLog.cs" />
-    <Compile Include="GameLogBase.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="LogBase.cs" />
     <Compile Include="SubModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TitleDb.cs" />
     <Compile Include="Util.cs" />
     <Content Include="SubModule.xml" />
+    <Content Include="titles.json" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Lib.Harmony">
@@ -86,9 +88,12 @@
       <Version>12.0.3</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
   <!-- Post-Build -->
   <PropertyGroup>
     <PostBuildEvent>xcopy /d /y "$(MSBuildProjectDirectory)\SubModule.xml" "$(ModDir)"</PostBuildEvent>
+    <PostBuildEvent>xcopy /d /y "$(MSBuildProjectDirectory)\titles.json" "$(ModDir)"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

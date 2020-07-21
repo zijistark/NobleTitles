@@ -23,11 +23,14 @@ namespace NobleTitles
 
 		internal static readonly Color ImportantTextColor = Color.FromUint(0x00F16D26); // orange
 
+		internal static TitleDb TitleDb;
+
 		protected override void OnSubModuleLoad()
 		{
 			base.OnSubModuleLoad();
 			Util.EnableLog = true; // enable various debug logging
 			Util.EnableTracer = true; // enable code event tracing (requires enabled logging)
+			TitleDb = new TitleDb();
 		}
 
 		protected override void OnBeforeInitialModuleScreenSetAsRoot()

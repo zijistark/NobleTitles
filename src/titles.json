@@ -1,0 +1,110 @@
+{
+  "vlandia": {
+    "King": {
+      "Male": "King",
+      "Female": "Queen"
+    },
+    "Duke": {
+      "Male": "Duke",
+      "Female": "Duchess"
+    },
+    "Count": {
+      "Male": "Count",
+      "Female": "Countess"
+    },
+    "Baron": {
+      "Male": "Baron",
+      "Female": "Baroness"
+    }
+  },
+  "empire": {
+    "King": {
+      "Male": "Emperor",
+      "Female": "Empress"
+    },
+    "Duke": {
+      "Male": "Archon",
+      "Female": "Archon"
+    },
+    "Count": {
+      "Male": "Duke",
+      "Female": "Duchess"
+    },
+    "Baron": {
+      "Male": "Strategos",
+      "Female": "Strategos"
+    }
+  },
+  "sturgia": {
+    "King": {
+      "Male": "Grand Duke",
+      "Female": "Grand Duchess"
+    },
+    "Duke": {
+      "Male": "Prince",
+      "Female": "Princess"
+    },
+    "Count": {
+      "Male": "Jarl",
+      "Female": "Jarl"
+    },
+    "Baron": {
+      "Male": "Boyar",
+      "Female": "Boyarynia"
+    }
+  },
+  "battania": {
+    "King": {
+      "Male": "High King",
+      "Female": "High Queen"
+    },
+    "Duke": {
+      "Male": "Mormaer",
+      "Female": "Mormaer"
+    },
+    "Count": {
+      "Male": "High Chief",
+      "Female": "High Chief"
+    },
+    "Baron": {
+      "Male": "Chief",
+      "Female": "Chief"
+    }
+  },
+  "khuzait": {
+    "King": {
+      "Male": "Great Khan",
+      "Female": "Great Khanum"
+    },
+    "Duke": {
+      "Male": "Khan",
+      "Female": "Khanum"
+    },
+    "Count": {
+      "Male": "Noyan",
+      "Female": "Noyan"
+    },
+    "Baron": {
+      "Male": "Bey",
+      "Female": "Bey"
+    }
+  },
+  "aserai": {
+    "King": {
+      "Male": "Sultan",
+      "Female": "Sultana"
+    },
+    "Duke": {
+      "Male": "Prince",
+      "Female": "Princess"
+    },
+    "Count": {
+      "Male": "Emir",
+      "Female": "Emira"
+    },
+    "Baron": {
+      "Male": "Sheikh",
+      "Female": "Sheikha"
+    }
+  }
+}
