@@ -40,7 +40,7 @@ namespace NobleTitles
 
 		protected void OnSessionLaunched(CampaignGameStarter starter)
 		{
-
+			AddTitlesToLivingHeroes();
 		}
 
 		protected void OnBeforeSave()
