@@ -27,7 +27,7 @@ namespace NobleTitles
 			var newlyDeadTitledHeroes = liveTitles.Where(at => at.Hero.IsDead);
 			deadTitles.AddRange(newlyDeadTitledHeroes);
 
-			if (newlyDeadTitledHeroes.Count() > 0)
+			if (newlyDeadTitledHeroes.Any())
 				liveTitles = liveTitles.Where(at => at.Hero.IsAlive).ToList();
 
 			// remove all titles from living heroes
@@ -69,11 +69,13 @@ namespace NobleTitles
 
 		protected void AddTitlesToKingdomHeroes(Kingdom kingdom)
 		{
-			// First, the most obvious, the ruler (king) title:
-			if (kingdom.Ruler != null)
-				AssignTitle(kingdom.Ruler, titleDb.GetKingTitlePrefix(kingdom.Culture, kingdom.Ruler.IsFemale));
+			var tr = new List<string>
+			{
+				@"-----------------------------------------------------------------------------------\",
+				$"Adding noble titles to {kingdom.Name}..."
+			};
 
-			/* Now, for the vassals...
+			/* The vassals...
 			 *
 			 * We consider all noble, active vassal clans and sort them by their "fief score" and, as a tie-breaker,
 			 * their total strength in ascending order (weakest -> strongest). For the fief score, 3 castles = 1 town.
@@ -89,7 +91,7 @@ namespace NobleTitles
 					c.Leader.IsAlive &&
 					c.Leader.IsNoble)
 				.OrderBy(c => GetFiefScore(c))
-				.ThenBy(c => c.TotalStrength)
+				.ThenBy(c => c.Renown)
 				.Select(c => c.Leader)
 				.ToList();
 
@@ -102,7 +104,8 @@ namespace NobleTitles
 				if (GetFiefScore(h.Clan) < 3)
 				{
 					++nBarons;
-					AssignTitle(h, titleDb.GetBaronTitlePrefix(kingdom.Culture, h.IsFemale));
+					AssignRulerTitle(h, titleDb.GetBaronTitle(kingdom.Culture));
+					tr.Add(GetHeroTrace(h, "BARON"));
 				}
 				else // They must be a count or duke. We're done here.
 					break;
@@ -116,20 +119,61 @@ namespace NobleTitles
 			int maxCountIdx = maxDukeIdx - nDukes;
 			int maxBaronIdx = maxCountIdx - nCounts;
 
-			// Dukes first.
-			for (int i = maxDukeIdx; i > maxCountIdx; --i)
-				AssignTitle(vassals[i], titleDb.GetDukeTitlePrefix(kingdom.Culture, vassals[i].IsFemale));
-
-			// Then counts.
+			// Counts:
 			for (int i = maxCountIdx; i > maxBaronIdx; --i)
-				AssignTitle(vassals[i], titleDb.GetCountTitlePrefix(kingdom.Culture, vassals[i].IsFemale));
+			{
+				AssignRulerTitle(vassals[i], titleDb.GetCountTitle(kingdom.Culture));
+				tr.Add(GetHeroTrace(vassals[i], "COUNT"));
+			}
+
+			// Dukes:
+			for (int i = maxDukeIdx; i > maxCountIdx; --i)
+			{
+				AssignRulerTitle(vassals[i], titleDb.GetDukeTitle(kingdom.Culture));
+				tr.Add(GetHeroTrace(vassals[i], "DUKE"));
+			}
+
+			// Finally, the most obvious, the ruler (King) title:
+			if (kingdom.Ruler != null)
+			{
+				AssignRulerTitle(kingdom.Ruler, titleDb.GetKingTitle(kingdom.Culture));
+				tr.Add(GetHeroTrace(kingdom.Ruler, "KING"));
+			}
+
+			tr.Add($"Total Vassals: {vassals.Count}");
+			tr.Add($"Barons:        {nBarons} ({(float)nBarons / vassals.Count * 100:F0}%)");
+			tr.Add($"Counts:        {nCounts} ({(float)nCounts / vassals.Count * 100:F0}%)");
+			tr.Add($"Dukes:         {nDukes} ({(float)nDukes / vassals.Count * 100:F0}%)");
+			Util.Log.Print(tr);
 		}
+
+		protected string GetHeroTrace(Hero h, string rank) =>
+			$" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} // Renown: {h.Clan.Renown:F0}]";
 
 		protected int GetFiefScore(Clan clan) => clan.Fortifications.Sum(t => t.IsTown ? 3 : 1);
 
-		protected void AssignTitle(Hero hero, string titlePrefix)
+		protected void AssignRulerTitle(Hero hero, TitleDb.Entry title)
 		{
-			var assignedTitle = new AssignedTitle(hero, titlePrefix);
+			var assignedTitle = new AssignedTitle(hero, hero.IsFemale ? title.Female : title.Male);
+			liveTitles.Add(assignedTitle);
+			AddTitleToHero(assignedTitle);
+
+			// Should their spouse also get the same title (after gender adjustment)?
+			// If the spouse is the leader of a clan (as we currently assume `hero` is a clan leader too,
+			//     it'd also be a different clan) and that clan belongs to any kingdom, no.
+			// Else, yes.
+
+			var spouse = hero.Spouse;
+
+			if (spouse == null ||
+				spouse.IsDead ||
+				(spouse.Clan?.Leader == spouse && spouse.Clan.Kingdom != null))
+				return;
+
+			// Sure. Give the spouse the ruler consort title, which is currently and probably always will
+			// be the same as the ruler title.
+
+			assignedTitle = new AssignedTitle(spouse, spouse.IsFemale ? title.Female : title.Male);
 			liveTitles.Add(assignedTitle);
 			AddTitleToHero(assignedTitle);
 		}

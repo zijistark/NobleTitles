@@ -9,37 +9,17 @@ namespace NobleTitles
 {
 	class TitleDb
 	{
-		internal string GetKingTitlePrefix(CultureObject culture, bool isFemale)
-		{
-			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
-				return null;
+		internal Entry GetKingTitle(CultureObject culture) =>
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.King : null;
 
-			return isFemale ? culEntry.King.Female : culEntry.King.Male;
-		}
+		internal Entry GetDukeTitle(CultureObject culture) =>
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Duke : null;
 
-		internal string GetDukeTitlePrefix(CultureObject culture, bool isFemale)
-		{
-			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
-				return null;
+		internal Entry GetCountTitle(CultureObject culture) =>
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Count : null;
 
-			return isFemale ? culEntry.Duke.Female : culEntry.Duke.Male;
-		}
-
-		internal string GetCountTitlePrefix(CultureObject culture, bool isFemale)
-		{
-			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
-				return null;
-
-			return isFemale ? culEntry.Count.Female : culEntry.Count.Male;
-		}
-
-		internal string GetBaronTitlePrefix(CultureObject culture, bool isFemale)
-		{
-			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
-				return null;
-
-			return isFemale ? culEntry.Baron.Female : culEntry.Baron.Male;
-		}
+		internal Entry GetBaronTitle(CultureObject culture) =>
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Baron : null;
 
 		internal TitleDb()
 		{
@@ -61,7 +41,7 @@ namespace NobleTitles
 			{
 				var (cul, entry) = (i.Key, i.Value);
 
-				// some basic validation first:
+				// Some basic validation first:
 
 				if (entry.King == null || entry.Duke == null || entry.Count == null || entry.Baron == null)
 					throw new BadTitleDataException($"All title types must be defined for culture '{cul}'!");
@@ -70,13 +50,13 @@ namespace NobleTitles
 					entry.Count.Male.IsStringNoneOrEmpty() || entry.Baron.Male.IsStringNoneOrEmpty())
 					throw new BadTitleDataException($"Missing at least one male variant of a title type for culture '{cul}'");
 
-				// missing feminine titles default to equivalent masculine/neutral titles:
+				// Missing feminine titles default to equivalent masculine/neutral titles:
 				if (entry.King.Female.IsStringNoneOrEmpty())  entry.King.Female  = entry.King.Male;
 				if (entry.Duke.Female.IsStringNoneOrEmpty())  entry.Duke.Female  = entry.Duke.Male;
 				if (entry.Count.Female.IsStringNoneOrEmpty()) entry.Count.Female = entry.Count.Male;
 				if (entry.Baron.Female.IsStringNoneOrEmpty()) entry.Baron.Female = entry.Baron.Male;
 
-				// commonly, we want the full title prefix, i.e. including the trailing space, so we just use
+				// Commonly, we want the full title prefix, i.e. including the trailing space, so we just use
 				// such strings natively instead of constantly doing string creation churn just to append a space:
 				entry.King.Male += ' ';
 				entry.King.Female += ' ';
@@ -91,7 +71,7 @@ namespace NobleTitles
 
 		internal void Serialize()
 		{
-			// undo our baked-in trailing space
+			// Undo our baked-in trailing space
 			foreach (var e in cultureMap.Values)
 			{
 				e.King.Male = RmEndChar(e.King.Male);
@@ -114,7 +94,7 @@ namespace NobleTitles
 			public BadTitleDataException(string message) : base(message) { }
 		}
 
-		protected class CultureEntry
+		public class CultureEntry
 		{
 			public Entry King = null;
 			public Entry Duke = null;
@@ -125,7 +105,7 @@ namespace NobleTitles
 		}
 
 
-		protected class Entry
+		public class Entry
 		{
 			public string Male = null;
 			public string Female = null;
@@ -133,7 +113,7 @@ namespace NobleTitles
 			public Entry() { }
 		}
 
-		protected string Path { get; private set; }
+		protected string Path { get; set; }
 
 		// culture StringId => CultureEntry (contains bulk of title information, only further split by gender)
 		protected Dictionary<string, CultureEntry> cultureMap;
