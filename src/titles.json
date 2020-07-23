@@ -1,4 +1,22 @@
 {
+  "default": {
+    "King": {
+      "Male": "King",
+      "Female": "Queen"
+    },
+    "Duke": {
+      "Male": "Duke",
+      "Female": "Duchess"
+    },
+    "Count": {
+      "Male": "Count",
+      "Female": "Countess"
+    },
+    "Baron": {
+      "Male": "Baron",
+      "Female": "Baroness"
+    }
+  },
   "vlandia": {
     "King": {
       "Male": "King",

@@ -10,16 +10,16 @@ namespace NobleTitles
 	class TitleDb
 	{
 		internal Entry GetKingTitle(CultureObject culture) =>
-			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.King : null;
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.King : noCulture.King;
 
 		internal Entry GetDukeTitle(CultureObject culture) =>
-			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Duke : null;
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Duke : noCulture.Duke;
 
 		internal Entry GetCountTitle(CultureObject culture) =>
-			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Count : null;
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Count : noCulture.Count;
 
 		internal Entry GetBaronTitle(CultureObject culture) =>
-			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Baron : null;
+			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Baron : noCulture.Baron;
 
 		internal TitleDb()
 		{
@@ -37,11 +37,13 @@ namespace NobleTitles
 			if (cultureMap == null || cultureMap.Count == 0)
 				throw new BadTitleDataException("Title database is empty!");
 
+			// If no fallback culture entry is defined, define one right now.
+			if (!cultureMap.ContainsKey("default"))
+				throw new BadTitleDataException("Title database must contain a fallback culture entry keyed by \"default\"!");
+
 			foreach (var i in cultureMap)
 			{
 				var (cul, entry) = (i.Key, i.Value);
-
-				// Some basic validation first:
 
 				if (entry.King == null || entry.Duke == null || entry.Count == null || entry.Baron == null)
 					throw new BadTitleDataException($"All title types must be defined for culture '{cul}'!");
@@ -66,6 +68,9 @@ namespace NobleTitles
 				entry.Count.Female += ' ';
 				entry.Baron.Male += ' ';
 				entry.Baron.Female += ' ';
+
+				if (cul == "default")
+					noCulture = entry;
 			}
 		}
 
@@ -111,11 +116,18 @@ namespace NobleTitles
 			public string Female = null;
 
 			public Entry() { }
+
+			public Entry(string male, string female = null)
+			{
+				Male = male;
+				Female = female;
+			}
 		}
 
 		protected string Path { get; set; }
 
 		// culture StringId => CultureEntry (contains bulk of title information, only further split by gender)
 		protected Dictionary<string, CultureEntry> cultureMap;
+		protected CultureEntry noCulture;
 	}
 }
