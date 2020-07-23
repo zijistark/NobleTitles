@@ -23,40 +23,25 @@ namespace NobleTitles
 
 		internal static readonly Color ImportantTextColor = Color.FromUint(0x00F16D26); // orange
 
-		internal static TitleDb TitleDb;
-
 		protected override void OnSubModuleLoad()
 		{
 			base.OnSubModuleLoad();
 			Util.EnableLog = true; // enable various debug logging
 			Util.EnableTracer = true; // enable code event tracing (requires enabled logging)
-			TitleDb = new TitleDb();
 		}
 
 		protected override void OnBeforeInitialModuleScreenSetAsRoot()
 		{
-			var trace = new List<string>();
+			base.OnBeforeInitialModuleScreenSetAsRoot();
 
-			if (_loaded)
-				trace.Add("Module was already loaded.");
-			else
-				trace.Add("Module is loading for the first time...");
-
-			if (!_loaded)
+			if (!hasLoaded)
 			{
 				var harmony = new Harmony(HarmonyDomain);
 				harmony.PatchAll();
 
-				InformationManager.DisplayMessage(
-					new InformationMessage($"Loaded {DisplayName}", ImportantTextColor));
-
-				_loaded = true;
+				InformationManager.DisplayMessage(new InformationMessage($"Loaded {DisplayName}", ImportantTextColor));
+				hasLoaded = true;
 			}
-
-			if (Util.EnableTracer)
-				Util.EventTracer.Trace(trace);
-			else
-				Util.Log.Print(trace);
 		}
 
 		protected override void OnGameStart(Game game, IGameStarter starterObject)
@@ -70,12 +55,8 @@ namespace NobleTitles
 			}
 		}
 
-		protected void AddBehaviors(CampaignGameStarter gameInitializer)
-		{
-			//gameInitializer.AddBehavior(new SaveBehavior());
-			//trace.Add($"Behavior added: {typeof(SaveBehavior).FullName}");
-		}
+		protected void AddBehaviors(CampaignGameStarter gameInitializer) =>	gameInitializer.AddBehavior(new TitleBehavior());
 
-		private bool _loaded = false;
+		private bool hasLoaded = false;
 	}
 }

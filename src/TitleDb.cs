@@ -9,7 +9,7 @@ namespace NobleTitles
 {
 	class TitleDb
 	{
-		string GetKingTitlePrefix(CultureObject culture, bool isFemale)
+		internal string GetKingTitlePrefix(CultureObject culture, bool isFemale)
 		{
 			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
 				return null;
@@ -17,7 +17,7 @@ namespace NobleTitles
 			return isFemale ? culEntry.King.Female : culEntry.King.Male;
 		}
 
-		string GetDukeTitlePrefix(CultureObject culture, bool isFemale)
+		internal string GetDukeTitlePrefix(CultureObject culture, bool isFemale)
 		{
 			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
 				return null;
@@ -25,7 +25,7 @@ namespace NobleTitles
 			return isFemale ? culEntry.Duke.Female : culEntry.Duke.Male;
 		}
 
-		string GetCountTitlePrefix(CultureObject culture, bool isFemale)
+		internal string GetCountTitlePrefix(CultureObject culture, bool isFemale)
 		{
 			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
 				return null;
@@ -33,7 +33,7 @@ namespace NobleTitles
 			return isFemale ? culEntry.Count.Female : culEntry.Count.Male;
 		}
 
-		string GetBaronTitlePrefix(CultureObject culture, bool isFemale)
+		internal string GetBaronTitlePrefix(CultureObject culture, bool isFemale)
 		{
 			if (culture == null || !cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry))
 				return null;
