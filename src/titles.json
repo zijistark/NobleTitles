@@ -41,22 +41,22 @@
       "Female": "Empress"
     },
     "Duke": {
-      "Male": "Archon",
-      "Female": "Archon"
-    },
-    "Count": {
       "Male": "Duke",
       "Female": "Duchess"
     },
+    "Count": {
+      "Male": "Catepan",
+      "Female": "Kyria"
+    },
     "Baron": {
       "Male": "Strategos",
-      "Female": "Strategos"
+      "Female": "Kyria"
     }
   },
   "sturgia": {
     "King": {
-      "Male": "Grand Duke",
-      "Female": "Grand Duchess"
+      "Male": "Grand Prince",
+      "Female": "Grand Princess"
     },
     "Duke": {
       "Male": "Prince",
@@ -68,7 +68,7 @@
     },
     "Baron": {
       "Male": "Boyar",
-      "Female": "Boyarynia"
+      "Female": "Boyarina"
     }
   },
   "battania": {
@@ -78,15 +78,15 @@
     },
     "Duke": {
       "Male": "Mormaer",
-      "Female": "Mormaer"
+      "Female": "Bantiarna"
     },
     "Count": {
       "Male": "High Chief",
-      "Female": "High Chief"
+      "Female": "High Chieftess"
     },
     "Baron": {
       "Male": "Chief",
-      "Female": "Chief"
+      "Female": "Chieftess"
     }
   },
   "khuzait": {
@@ -95,16 +95,16 @@
       "Female": "Great Khanum"
     },
     "Duke": {
+      "Male": "Baghatur",
+      "Female": "Bekhi"
+    },
+    "Count": {
       "Male": "Khan",
       "Female": "Khanum"
     },
-    "Count": {
-      "Male": "Baghatur",
-      "Female": "Baghatur"
-    },
     "Baron": {
       "Male": "Bey",
-      "Female": "Bey"
+      "Female": "Begum"
     }
   },
   "aserai": {

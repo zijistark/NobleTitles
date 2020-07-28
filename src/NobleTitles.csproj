@@ -16,7 +16,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <ModName>$(AssemblyName)</ModName>
-    <GameDir>$(MOUNT_AND_BLADE_DIR)</GameDir>
+    <GameDir>F:\bak\Mount &amp; Blade II Bannerlord</GameDir>
+    <!-- <GameDir>$(MOUNT_AND_BLADE_DIR)</GameDir> -->
     <ModDir>$(GameDir)/Modules/$(ModName)</ModDir>
   </PropertyGroup>
   <!-- Debug Configuration Properties -->

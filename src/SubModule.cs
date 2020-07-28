@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using HarmonyLib;
+﻿using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -12,8 +11,8 @@ namespace NobleTitles
 		/* Semantic Versioning (https://semver.org): */
 		public const int SemVerMajor = 0;
 		public const int SemVerMinor = 1;
-		public const int SemVerPatch = 0;
-		public const string SemVerSpecial = "alpha1";
+		public const int SemVerPatch = 1;
+		public const string SemVerSpecial = null;
 		private static readonly string SemVerEnd = (SemVerSpecial != null) ? '-' + SemVerSpecial : string.Empty;
 		public static readonly string Version = $"{SemVerMajor}.{SemVerMinor}.{SemVerPatch}{SemVerEnd}";
 

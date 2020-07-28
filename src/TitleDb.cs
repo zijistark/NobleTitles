@@ -35,22 +35,22 @@ namespace NobleTitles
 				);
 
 			if (cultureMap == null || cultureMap.Count == 0)
-				throw new BadTitleDataException("Title database is empty!");
+				throw new BadTitleDatabaseException("Title database is empty!");
 
-			// If no fallback culture entry is defined, define one right now.
+			// Must have a fallback culture entry.
 			if (!cultureMap.ContainsKey("default"))
-				throw new BadTitleDataException("Title database must contain a fallback culture entry keyed by \"default\"!");
+				throw new BadTitleDatabaseException("Title database must contain a fallback culture entry keyed by \"default\"!");
 
 			foreach (var i in cultureMap)
 			{
 				var (cul, entry) = (i.Key, i.Value);
 
 				if (entry.King == null || entry.Duke == null || entry.Count == null || entry.Baron == null)
-					throw new BadTitleDataException($"All title types must be defined for culture '{cul}'!");
+					throw new BadTitleDatabaseException($"All title types must be defined for culture '{cul}'!");
 
 				if (entry.King.Male.IsStringNoneOrEmpty() || entry.Duke.Male.IsStringNoneOrEmpty() ||
 					entry.Count.Male.IsStringNoneOrEmpty() || entry.Baron.Male.IsStringNoneOrEmpty())
-					throw new BadTitleDataException($"Missing at least one male variant of a title type for culture '{cul}'");
+					throw new BadTitleDatabaseException($"Missing at least one male variant of a title type for culture '{cul}'");
 
 				// Missing feminine titles default to equivalent masculine/neutral titles:
 				if (entry.King.Female.IsStringNoneOrEmpty())  entry.King.Female  = entry.King.Male;
@@ -94,9 +94,9 @@ namespace NobleTitles
 
 		string RmEndChar(string s) => s.Substring(0, s.Length - 1);
 
-		public class BadTitleDataException : Exception
+		public class BadTitleDatabaseException : Exception
 		{
-			public BadTitleDataException(string message) : base(message) { }
+			public BadTitleDatabaseException(string message) : base(message) { }
 		}
 
 		public class CultureEntry
@@ -116,12 +116,6 @@ namespace NobleTitles
 			public string Female = null;
 
 			public Entry() { }
-
-			public Entry(string male, string female = null)
-			{
-				Male = male;
-				Female = female;
-			}
 		}
 
 		protected string Path { get; set; }
