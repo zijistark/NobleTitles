@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Helpers;
+using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.ObjectSystem;
 
 namespace NobleTitles
 {
@@ -12,73 +16,121 @@ namespace NobleTitles
 		public override void RegisterEvents()
 		{
 			CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+			CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, new Action<Hero, Hero, KillCharacterAction.KillCharacterActionDetail, bool>(OnHeroKilled));
 			CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
 			CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, OnBeforeSave);
 		}
 
 		public override void SyncData(IDataStore dataStore)
 		{
-		}
+			string dsKey = $"{SubModule.Name}DeadTitles";
 
-		protected void OnDailyTick()
-		{
-			/* Handle titled heroes that have died since the last update.
-			 * Shuffle the dead guys into deadTitles and the remainder into liveTitles. */
-			var newlyDeadTitledHeroes = liveTitles.Where(at => at.Hero.IsDead);
-			deadTitles.AddRange(newlyDeadTitledHeroes);
+			if (hasLoaded)
+			{
+				// Serializing dead heroes' titles
+				savedDeadTitles = new Dictionary<uint, string>();
 
-			if (newlyDeadTitledHeroes.Any())
-				liveTitles = liveTitles.Where(at => at.Hero.IsAlive).ToList();
+				foreach (var at in deadTitles)
+					savedDeadTitles[at.Hero.Id.InternalValue] = at.TitlePrefix;
 
-			// remove all titles from living heroes
-			RemoveTitlesFromHeroes();
-			liveTitles.Clear();
+				string serialized = JsonConvert.SerializeObject(savedDeadTitles);
+				savedDeadTitles = null;
 
-			// now add currently applicable titles to living heroes
-			AddTitlesToLivingHeroes();
+				dataStore.SyncData(dsKey, ref serialized);
+			}
+			else
+			{
+				// Deserializing dead heroes' titles (will be applied in OnSessionLaunched)
+				hasLoaded = true;
+
+				string serialized = null;
+				dataStore.SyncData(dsKey, ref serialized);
+
+				if (serialized.IsStringNoneOrEmpty())
+					return;
+
+				savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
+			}
 		}
 
 		protected void OnSessionLaunched(CampaignGameStarter starter)
 		{
+			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
+			AddTitlesToLivingHeroes();
+
+			if (savedDeadTitles == null)
+				return;
+
+			foreach (var item in savedDeadTitles)
+			{
+				if (!(MBObjectManager.Instance.GetObject(new MBGUID(item.Key)) is Hero hero))
+				{
+					Util.Log.Print($"ERROR: Hero ID lookup failed for hero {item.Key} with title {item.Value}");
+					continue;
+				}
+
+				var at = new AssignedTitle(hero, item.Value);
+				AddTitleToHero(at);
+				deadTitles.Add(at);
+			}
+
+			savedDeadTitles = null;
+		}
+
+		protected void OnHeroKilled(Hero victim, Hero killer,
+			KillCharacterAction.KillCharacterActionDetail detail, bool showNotification) => HandleNewlyDeadHeroes();
+
+		protected void OnDailyTick()
+		{
+			// Ensure dead, titled heroes are moved to the deadTitles list
+			HandleNewlyDeadHeroes();
+
+			// Remove all titles from living heroes
+			RemoveTitlesFromHeroes();
+			liveTitles.Clear();
+
+			// Now add currently applicable titles to living heroes
 			AddTitlesToLivingHeroes();
 		}
 
-		protected void OnBeforeSave()
+		// Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
+		protected void OnBeforeSave() => RemoveTitlesFromHeroes(includeDeadHeroes: true);
+
+		internal void OnAfterSave() // called from a Harmony patch rather than event dispatch
 		{
-			Util.EventTracer.Trace();
-
-			// Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
-			RemoveTitlesFromHeroes(includeDeadHeroes: true);
-		}
-
-		internal void OnAfterSave()
-		{
-			Util.EventTracer.Trace();
-
 			// Restore all titles to all heroes using the still-existing assignment records.
 			foreach (var at in liveTitles.Concat(deadTitles))
 				AddTitleToHero(at);
 		}
 
+		/* Handle titled heroes that have died since the last update.
+		 * Shuffle the dead guys into deadTitles and the remainder into liveTitles. */
+		protected void HandleNewlyDeadHeroes()
+		{
+			var newlyDeadTitledHeroes = liveTitles.Where(at => at.Hero.IsDead);
+
+			if (newlyDeadTitledHeroes.Any())
+			{
+				deadTitles.AddRange(newlyDeadTitledHeroes);
+				liveTitles = liveTitles.Where(at => at.Hero.IsAlive).ToList();
+			}
+		}
+
 		protected void AddTitlesToLivingHeroes()
 		{
-			// all living, titled heroes are associated with kingdoms for now, so go straight to the source
+			// All living, titled heroes are associated with kingdoms for now, so go straight to the source
 			foreach (var k in Kingdom.All)
 				AddTitlesToKingdomHeroes(k);
 		}
 
 		protected void AddTitlesToKingdomHeroes(Kingdom kingdom)
 		{
-			var tr = new List<string>
-			{
-				@"-----------------------------------------------------------------------------------\",
-				$"Adding noble titles to {kingdom.Name}..."
-			};
+			var tr = new List<string> { $"Adding noble titles to {kingdom.Name}..." };
 
-			/* The vassals...
+			/* The vassals first...
 			 *
 			 * We consider all noble, active vassal clans and sort them by their "fief score" and, as a tie-breaker,
-			 * their total strength in ascending order (weakest -> strongest). For the fief score, 3 castles = 1 town.
+			 * their renown in ascending order (weakest -> strongest). For the fief score, 3 castles = 1 town.
 			 * Finally, we select the ordered list of their leaders.
 			 */
 
@@ -140,15 +192,11 @@ namespace NobleTitles
 				tr.Add(GetHeroTrace(kingdom.Ruler, "KING"));
 			}
 
-			tr.Add($"Total Vassals: {vassals.Count}");
-			tr.Add($"Barons:        {nBarons} ({(float)nBarons / vassals.Count * 100:F0}%)");
-			tr.Add($"Counts:        {nCounts} ({(float)nCounts / vassals.Count * 100:F0}%)");
-			tr.Add($"Dukes:         {nDukes} ({(float)nDukes / vassals.Count * 100:F0}%)");
 			Util.Log.Print(tr);
 		}
 
 		protected string GetHeroTrace(Hero h, string rank) =>
-			$" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} // Renown: {h.Clan.Renown:F0}]";
+			$" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} / Renown: {h.Clan.Renown:F0}]";
 
 		protected int GetFiefScore(Clan clan) => clan.Fortifications.Sum(t => t.IsTown ? 3 : 1);
 
@@ -171,7 +219,7 @@ namespace NobleTitles
 				return;
 
 			// Sure. Give the spouse the ruler consort title, which is currently and probably always will
-			// be the same as the ruler title.
+			// be the same as the ruler title, adjusted for gender.
 
 			assignedTitle = new AssignedTitle(spouse, spouse.IsFemale ? title.Female : title.Male);
 			liveTitles.Add(assignedTitle);
@@ -227,6 +275,11 @@ namespace NobleTitles
 
 		private List<AssignedTitle> liveTitles = new List<AssignedTitle>();
 		private List<AssignedTitle> deadTitles = new List<AssignedTitle>();
+
 		private readonly TitleDb titleDb = new TitleDb();
+
+		private Dictionary<uint, string> savedDeadTitles; // Maps an MBGUID to a static title prefix for dead heroes, only used for (de)serialization
+
+		private bool hasLoaded = false; // If true, any SyncData call will be interpreted as serialization/saving
 	}
 }
