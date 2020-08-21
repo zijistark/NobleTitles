@@ -95,8 +95,8 @@
   </ItemGroup>
   <!-- Post-Build -->
   <PropertyGroup>
-    <PostBuildEvent>xcopy /d /y "$(MSBuildProjectDirectory)\SubModule.xml" "$(ModDir)"</PostBuildEvent>
-    <PostBuildEvent>xcopy /d /y "$(MSBuildProjectDirectory)\titles.json" "$(ModDir)"</PostBuildEvent>
+    <PostBuildEvent>xcopy /d /y "$(MSBuildProjectDirectory)\SubModule.xml" "$(ModDir)"
+xcopy /d /y "$(MSBuildProjectDirectory)\titles.json" "$(ModDir)"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
