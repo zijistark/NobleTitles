@@ -9,8 +9,8 @@ namespace NobleTitles
 	public class SubModule : MBSubModuleBase
 	{
 		/* Semantic Versioning (https://semver.org): */
-		public const int SemVerMajor = 0;
-		public const int SemVerMinor = 2;
+		public const int SemVerMajor = 1;
+		public const int SemVerMinor = 0;
 		public const int SemVerPatch = 0;
 		public const string SemVerSpecial = null;
 		private static readonly string SemVerEnd = (SemVerSpecial != null) ? '-' + SemVerSpecial : string.Empty;
