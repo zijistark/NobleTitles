@@ -54,6 +54,10 @@ namespace NobleTitles
 		protected void OnSessionLaunched(CampaignGameStarter starter)
 		{
 			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
+
+			// TODO: Use a new TitleDb method to strip ALL possible title prefixes from ALL living hero names
+			// if the save hasn't been marked as upgraded from v1.0.1.
+
 			AddTitlesToLivingHeroes();
 
 			if (savedDeadTitles == null)
