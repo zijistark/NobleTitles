@@ -119,7 +119,9 @@ namespace NobleTitles
 		protected void AddTitlesToLivingHeroes()
 		{
 			// All living, titled heroes are associated with kingdoms for now, so go straight to the source
-			foreach (var k in Kingdom.All)
+			Util.Log.Print("Adding kingdom-based noble titles...");
+
+			foreach (var k in Kingdom.All.Where(x => !x.IsEliminated))
 				AddTitlesToKingdomHeroes(k);
 		}
 
@@ -186,7 +188,8 @@ namespace NobleTitles
 			}
 
 			// Finally, the most obvious, the ruler (King) title:
-			if (kingdom.Ruler != null)
+			if (kingdom.Ruler != null &&
+				!Kingdom.All.Where(k => k != kingdom).SelectMany(k => k.Lords).Where(h => h == kingdom.Ruler).Any()) // fix for stale ruler status in defunct kingdoms
 			{
 				AssignRulerTitle(kingdom.Ruler, titleDb.GetKingTitle(kingdom.Culture));
 				tr.Add(GetHeroTrace(kingdom.Ruler, "KING"));
