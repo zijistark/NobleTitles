@@ -211,7 +211,7 @@ namespace NobleTitles
 		{
 			if (assignedTitles.TryGetValue(hero, out string oldTitlePrefix))
 			{
-				if (overrideTitle && titlePrefix != oldTitlePrefix)
+				if (overrideTitle && !titlePrefix.Equals(oldTitlePrefix))
 					RemoveTitleFromHero(hero);
 				else if (!overrideTitle)
 				{
