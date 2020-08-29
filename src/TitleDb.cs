@@ -21,6 +21,44 @@ namespace NobleTitles
 		internal Entry GetBaronTitle(CultureObject culture) =>
 			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Baron : noCulture.Baron;
 
+		internal string StripTitlePrefixes(Hero hero)
+		{
+			string name = hero.Name.ToString();
+			string prevName = name;
+			string newName = string.Empty;
+
+			while (true)
+			{
+				foreach (var ce in cultureMap.Values)
+				{
+					if (hero.IsFemale)
+					{
+						newName = StripTitlePrefix(prevName, ce.King.Female);
+						newName = StripTitlePrefix(prevName, ce.Duke.Female);
+						newName = StripTitlePrefix(prevName, ce.Count.Female);
+						newName = StripTitlePrefix(prevName, ce.Baron.Female);
+					}
+					else
+					{
+						newName = StripTitlePrefix(prevName, ce.King.Male);
+						newName = StripTitlePrefix(prevName, ce.Duke.Male);
+						newName = StripTitlePrefix(prevName, ce.Count.Male);
+						newName = StripTitlePrefix(prevName, ce.Baron.Male);
+					}
+				}
+
+				if (prevName.Equals(newName)) // Made no progress, so we're done
+				{
+					name = newName;
+					break;
+				}
+				else
+					prevName = newName;
+			}
+
+			return name;
+		}
+
 		internal TitleDb()
 		{
 			Path = BasePath.Name + $"Modules/{SubModule.Name}/titles.json";
@@ -92,7 +130,9 @@ namespace NobleTitles
 			File.WriteAllText(Path, JsonConvert.SerializeObject(cultureMap, Formatting.Indented));
 		}
 
-		string RmEndChar(string s) => s.Substring(0, s.Length - 1);
+		private string RmEndChar(string s) => s.Substring(0, s.Length - 1);
+
+		private string StripTitlePrefix(string s, string prefix) => s.StartsWith(prefix) ? s.Remove(0, prefix.Length) : s;
 
 		public class BadTitleDatabaseException : Exception
 		{

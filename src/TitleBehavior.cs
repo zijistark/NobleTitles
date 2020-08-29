@@ -21,11 +21,12 @@ namespace NobleTitles
 
 		public override void SyncData(IDataStore dataStore)
 		{
-			string dsKey = $"{SubModule.Name}DeadTitles";
+			string dtKey = $"{SubModule.Name}DeadTitles";
+			string svKey = $"{SubModule.Name}SaveVersion";
 
 			if (hasLoaded)
 			{
-				// Serializing dead heroes' titles
+				// Serializing dead heroes' titles:
 				savedDeadTitles = new Dictionary<uint, string>();
 
 				foreach (var at in assignedTitles.Where(item => item.Key.IsDead))
@@ -34,26 +35,47 @@ namespace NobleTitles
 				string serialized = JsonConvert.SerializeObject(savedDeadTitles);
 				savedDeadTitles = null;
 
-				dataStore.SyncData(dsKey, ref serialized);
+				dataStore.SyncData(dtKey, ref serialized);
 			}
 			else
 			{
-				// Deserializing dead heroes' titles (will be applied in OnSessionLaunched)
+				// Deserializing dead heroes' titles (will be applied in OnSessionLaunched):
 				hasLoaded = true;
 
 				string serialized = null;
-				dataStore.SyncData(dsKey, ref serialized);
+				dataStore.SyncData(dtKey, ref serialized);
 
 				if (serialized.IsStringNoneOrEmpty())
 					return;
 
 				savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
 			}
+
+			// Serializing current savegame version:
+			dataStore.SyncData(svKey, ref saveVersion);
 		}
 
 		protected void OnSessionLaunched(CampaignGameStarter starter)
 		{
 			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
+
+			// Fix old savegames that might have suffered from chained titles (fix only applies to living heroes):
+			if (saveVersion < 1)
+			{
+				foreach (var hero in Hero.All.Where(h => h.IsAlive))
+				{
+					var name = hero.Name.ToString();
+					var strippedName = titleDb.StripTitlePrefixes(hero);
+
+					if (!strippedName.IsStringNoneOrEmpty() && !name.Equals(strippedName))
+					{
+						hero.Name = new TextObject(strippedName);
+						RefreshPartyName(hero);
+					}
+				}
+			}
+
+			saveVersion = CurrentSaveVersion;
 
 			// TODO: Use a new TitleDb method to strip ALL possible title prefixes from ALL living hero names
 			// if the save hasn't been marked as upgraded from v1.0.1.
@@ -272,5 +294,8 @@ namespace NobleTitles
 		private readonly TitleDb titleDb = new TitleDb();
 
 		private bool hasLoaded = false; // If true, any SyncData call will be interpreted as serialization/saving
+
+		private const int CurrentSaveVersion = 1;
+		private int saveVersion = 0;
 	}
 }
