@@ -21,6 +21,42 @@ namespace NobleTitles
 		internal Entry GetBaronTitle(CultureObject culture) =>
 			(culture != null && cultureMap.TryGetValue(culture.StringId, out CultureEntry culEntry)) ? culEntry.Baron : noCulture.Baron;
 
+		internal string StripTitlePrefixes(Hero hero)
+		{
+			var prevName = hero.Name.ToString();
+			var newName = prevName;
+
+			while (true)
+			{
+				foreach (var ce in cultureMap.Values)
+				{
+					if (hero.IsFemale)
+					{
+						newName = StripTitlePrefix(newName, ce.King.Female);
+						newName = StripTitlePrefix(newName, ce.Duke.Female);
+						newName = StripTitlePrefix(newName, ce.Count.Female);
+						newName = StripTitlePrefix(newName, ce.Baron.Female);
+					}
+					else
+					{
+						newName = StripTitlePrefix(newName, ce.King.Male);
+						newName = StripTitlePrefix(newName, ce.Duke.Male);
+						newName = StripTitlePrefix(newName, ce.Count.Male);
+						newName = StripTitlePrefix(newName, ce.Baron.Male);
+					}
+				}
+
+				// For compatibility with savegame version 0, pre-1.1.0, as these titles left the default config:
+				newName = StripTitlePrefix(newName, "Great Khan ");
+				newName = StripTitlePrefix(newName, "Great Khanum ");
+
+				if (prevName.Equals(newName)) // Made no progress, so we're done
+					return newName;
+				else
+					prevName = newName;
+			}
+		}
+
 		internal TitleDb()
 		{
 			Path = BasePath.Name + $"Modules/{SubModule.Name}/titles.json";
@@ -92,7 +128,9 @@ namespace NobleTitles
 			File.WriteAllText(Path, JsonConvert.SerializeObject(cultureMap, Formatting.Indented));
 		}
 
-		string RmEndChar(string s) => s.Substring(0, s.Length - 1);
+		private string RmEndChar(string s) => s.Substring(0, s.Length - 1);
+
+		private string StripTitlePrefix(string s, string prefix) => s.StartsWith(prefix) ? s.Remove(0, prefix.Length) : s;
 
 		public class BadTitleDatabaseException : Exception
 		{
