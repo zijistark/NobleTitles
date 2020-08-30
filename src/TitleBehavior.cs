@@ -4,7 +4,6 @@ using System.Linq;
 using Helpers;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
@@ -70,14 +69,14 @@ namespace NobleTitles
 			{
 				Util.Log.Print("Due to an old savegame version, stripping all title prefixes from all heroes' names...");
 
-				foreach (var hero in Hero.All.Where(h => h != Hero.MainHero && h.Clan != null && h.Clan.Kingdom != null && h.Clan.Kingdom.Ruler == h))
+				foreach (var hero in Hero.All.Where(h => h != Hero.MainHero))
 				{
 					var name = hero.Name.ToString();
 					var strippedName = titleDb.StripTitlePrefixes(hero);
 
 					if (!strippedName.IsStringNoneOrEmpty() && !name.Equals(strippedName))
 					{
-						Util.Log.Print($" -> {strippedName} was {name}");
+						Util.Log.Print($" -> Name \"{strippedName}\" previously was \"{name}\"");
 						hero.Name = new TextObject(strippedName);
 						RefreshPartyName(hero);
 					}
@@ -121,14 +120,6 @@ namespace NobleTitles
 		// Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
 		protected void OnBeforeSave()
 		{
-			// FIXME: TEMPORARY TESTING
-			//var lucon = Kingdom.All.Single(k => k.StringId == "empire").Ruler;
-			//KillCharacterAction.ApplyByExecution(lucon, Hero.MainHero);
-
-			//var derthert = Kingdom.All.Single(k => k.StringId == "vlandia").Ruler;
-			//derthert.Name = new TextObject("King Emperor Emperor Emperor King King Baron Baron Baron Great Khan Baron " + derthert.Name.ToString());
-			//RefreshPartyName(derthert);
-
 			foreach (var at in assignedTitles)
 				RemoveTitleFromHero(at.Key, unregisterTitle: false);
 		}

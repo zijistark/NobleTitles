@@ -23,9 +23,8 @@ namespace NobleTitles
 
 		internal string StripTitlePrefixes(Hero hero)
 		{
-			var name = hero.Name.ToString();
-			var prevName = name;
-			var newName = name;
+			var prevName = hero.Name.ToString();
+			var newName = prevName;
 
 			while (true)
 			{
@@ -46,6 +45,10 @@ namespace NobleTitles
 						newName = StripTitlePrefix(newName, ce.Baron.Male);
 					}
 				}
+
+				// For compatibility with savegame version 0, pre-1.1.0, as these titles left the default config:
+				newName = StripTitlePrefix(newName, "Great Khan ");
+				newName = StripTitlePrefix(newName, "Great Khanum ");
 
 				if (prevName.Equals(newName)) // Made no progress, so we're done
 					return newName;
