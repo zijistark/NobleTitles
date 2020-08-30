@@ -4,6 +4,7 @@ using System.Linq;
 using Helpers;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
@@ -15,6 +16,8 @@ namespace NobleTitles
 		public override void RegisterEvents()
 		{
 			CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+			CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnNewGameCreated));
+			CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnGameLoaded));
 			CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
 			CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, OnBeforeSave);
 		}
@@ -51,34 +54,41 @@ namespace NobleTitles
 				savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
 			}
 
-			// Serializing current savegame version:
+			// Synchronize current savegame version:
 			dataStore.SyncData(svKey, ref saveVersion);
 		}
 
-		protected void OnSessionLaunched(CampaignGameStarter starter)
-		{
-			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
+		protected void OnNewGameCreated(CampaignGameStarter starter) =>
+			Util.Log.Print($"Starting new campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {CurrentSaveVersion}...");
 
-			// Fix old savegames that might have suffered from chained titles (fix only applies to living heroes):
+		protected void OnGameLoaded(CampaignGameStarter starter)
+		{
+			Util.Log.Print($"Loading campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {saveVersion}...");
+
+			// Fix old savegames that might have suffered from chained titles:
 			if (saveVersion < 1)
 			{
-				foreach (var hero in Hero.All.Where(h => h.IsAlive))
+				Util.Log.Print("Due to an old savegame version, stripping all title prefixes from all heroes' names...");
+
+				foreach (var hero in Hero.All.Where(h => h != Hero.MainHero && h.Clan != null && h.Clan.Kingdom != null && h.Clan.Kingdom.Ruler == h))
 				{
 					var name = hero.Name.ToString();
 					var strippedName = titleDb.StripTitlePrefixes(hero);
 
 					if (!strippedName.IsStringNoneOrEmpty() && !name.Equals(strippedName))
 					{
+						Util.Log.Print($" -> {strippedName} was {name}");
 						hero.Name = new TextObject(strippedName);
 						RefreshPartyName(hero);
 					}
 				}
 			}
+		}
 
-			saveVersion = CurrentSaveVersion;
-
-			// TODO: Use a new TitleDb method to strip ALL possible title prefixes from ALL living hero names
-			// if the save hasn't been marked as upgraded from v1.0.1.
+		protected void OnSessionLaunched(CampaignGameStarter starter)
+		{
+			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
+			saveVersion = CurrentSaveVersion; // By now (and no later), it's safe to update the save to the latest savegame version
 
 			AddTitlesToLivingHeroes();
 
@@ -109,7 +119,19 @@ namespace NobleTitles
 		}
 
 		// Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
-		protected void OnBeforeSave() => RemoveTitlesFromHeroes();
+		protected void OnBeforeSave()
+		{
+			// FIXME: TEMPORARY TESTING
+			//var lucon = Kingdom.All.Single(k => k.StringId == "empire").Ruler;
+			//KillCharacterAction.ApplyByExecution(lucon, Hero.MainHero);
+
+			//var derthert = Kingdom.All.Single(k => k.StringId == "vlandia").Ruler;
+			//derthert.Name = new TextObject("King Emperor Emperor Emperor King King Baron Baron Baron Great Khan Baron " + derthert.Name.ToString());
+			//RefreshPartyName(derthert);
+
+			foreach (var at in assignedTitles)
+				RemoveTitleFromHero(at.Key, unregisterTitle: false);
+		}
 
 		internal void OnAfterSave() // Called from a Harmony patch rather than event dispatch
 		{
@@ -251,17 +273,11 @@ namespace NobleTitles
 
 		protected void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
 		{
-			foreach (var at in assignedTitles.Where(item => item.Key.IsAlive))
-				RemoveTitleFromHero(at.Key, unregisterTitles);
+			foreach (var h in assignedTitles.Keys.Where(h => h.IsAlive).ToList())
+				RemoveTitleFromHero(h, unregisterTitles);
 		}
 
-		protected void RemoveTitlesFromHeroes()
-		{
-			foreach (var at in assignedTitles)
-				RemoveTitleFromHero(at.Key);
-		}
-
-		protected void RemoveTitleFromHero(Hero hero, bool unregisterTitle = false)
+		protected void RemoveTitleFromHero(Hero hero, bool unregisterTitle = true)
 		{
 			var name = hero.Name.ToString();
 			var title = assignedTitles[hero];

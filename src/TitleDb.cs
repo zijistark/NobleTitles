@@ -23,9 +23,9 @@ namespace NobleTitles
 
 		internal string StripTitlePrefixes(Hero hero)
 		{
-			string name = hero.Name.ToString();
-			string prevName = name;
-			string newName = string.Empty;
+			var name = hero.Name.ToString();
+			var prevName = name;
+			var newName = name;
 
 			while (true)
 			{
@@ -33,30 +33,25 @@ namespace NobleTitles
 				{
 					if (hero.IsFemale)
 					{
-						newName = StripTitlePrefix(prevName, ce.King.Female);
-						newName = StripTitlePrefix(prevName, ce.Duke.Female);
-						newName = StripTitlePrefix(prevName, ce.Count.Female);
-						newName = StripTitlePrefix(prevName, ce.Baron.Female);
+						newName = StripTitlePrefix(newName, ce.King.Female);
+						newName = StripTitlePrefix(newName, ce.Duke.Female);
+						newName = StripTitlePrefix(newName, ce.Count.Female);
+						newName = StripTitlePrefix(newName, ce.Baron.Female);
 					}
 					else
 					{
-						newName = StripTitlePrefix(prevName, ce.King.Male);
-						newName = StripTitlePrefix(prevName, ce.Duke.Male);
-						newName = StripTitlePrefix(prevName, ce.Count.Male);
-						newName = StripTitlePrefix(prevName, ce.Baron.Male);
+						newName = StripTitlePrefix(newName, ce.King.Male);
+						newName = StripTitlePrefix(newName, ce.Duke.Male);
+						newName = StripTitlePrefix(newName, ce.Count.Male);
+						newName = StripTitlePrefix(newName, ce.Baron.Male);
 					}
 				}
 
 				if (prevName.Equals(newName)) // Made no progress, so we're done
-				{
-					name = newName;
-					break;
-				}
+					return newName;
 				else
 					prevName = newName;
 			}
-
-			return name;
 		}
 
 		internal TitleDb()
