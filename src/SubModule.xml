@@ -1,14 +1,14 @@
 ﻿<Module>
   <Name value="Noble Titles"/>
   <Id value="NobleTitles"/>
-  <Version value="v1.0.1"/>
+  <Version value="v1.1.0"/>
   <SingleplayerModule value="true"/>
   <MultiplayerModule value="false"/>
   <DependedModules>
     <DependedModule Id="Native"/>
     <DependedModule Id="SandBoxCore"/>
     <DependedModule Id="Sandbox"/>
-    <DependedModule Id="StoryMode" />
+    <DependedModule Id="StoryMode"/>
   </DependedModules>
   <SubModules>
     <SubModule>
