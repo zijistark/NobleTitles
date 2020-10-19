@@ -26,6 +26,9 @@ namespace NobleTitles
 			string dtKey = $"{SubModule.Name}DeadTitles";
 			string svKey = $"{SubModule.Name}SaveVersion";
 
+			// Synchronize current savegame version:
+			dataStore.SyncData(svKey, ref saveVersion);
+
 			if (hasLoaded)
 			{
 				// Serializing dead heroes' titles:
@@ -52,9 +55,6 @@ namespace NobleTitles
 
 				savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
 			}
-
-			// Synchronize current savegame version:
-			dataStore.SyncData(svKey, ref saveVersion);
 		}
 
 		protected void OnNewGameCreated(CampaignGameStarter starter) =>

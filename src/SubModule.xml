@@ -1,7 +1,7 @@
 ﻿<Module>
   <Name value="Noble Titles"/>
   <Id value="NobleTitles"/>
-  <Version value="v1.1.2"/>
+  <Version value="v1.1.3"/>
   <SingleplayerModule value="true"/>
   <MultiplayerModule value="false"/>
   <DependedModules>
