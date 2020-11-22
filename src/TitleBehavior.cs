@@ -1,308 +1,304 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Helpers;
+
 using Newtonsoft.Json;
+
+using Helpers;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 
 namespace NobleTitles
 {
-	class TitleBehavior : CampaignBehaviorBase
-	{
-		public override void RegisterEvents()
-		{
-			CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
-			CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnNewGameCreated));
-			CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnGameLoaded));
-			CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
-			CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, OnBeforeSave);
-		}
+    internal sealed class TitleBehavior : CampaignBehaviorBase
+    {
+        public override void RegisterEvents()
+        {
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnNewGameCreated));
+            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnGameLoaded));
+            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
+            CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, OnBeforeSave);
+        }
 
-		public override void SyncData(IDataStore dataStore)
-		{
-			string dtKey = $"{SubModule.Name}DeadTitles";
-			string svKey = $"{SubModule.Name}SaveVersion";
+        public override void SyncData(IDataStore dataStore)
+        {
+            string dtKey = $"{SubModule.Name}DeadTitles";
+            string svKey = $"{SubModule.Name}SaveVersion";
 
-			// Synchronize current savegame version:
-			dataStore.SyncData(svKey, ref saveVersion);
+            // Synchronize current savegame version:
+            dataStore.SyncData(svKey, ref saveVersion);
 
-			if (hasLoaded)
-			{
-				// Serializing dead heroes' titles:
-				savedDeadTitles = new Dictionary<uint, string>();
+            if (dataStore.IsSaving)
+            {
+                // Serializing dead heroes' titles:
+                savedDeadTitles = new Dictionary<uint, string>();
 
-				foreach (var at in assignedTitles.Where(item => item.Key.IsDead))
-					savedDeadTitles[at.Key.Id.InternalValue] = at.Value;
+                foreach (var at in assignedTitles.Where(item => item.Key.IsDead))
+                    savedDeadTitles[at.Key.Id.InternalValue] = at.Value;
 
-				string serialized = JsonConvert.SerializeObject(savedDeadTitles);
-				savedDeadTitles = null;
+                string serialized = JsonConvert.SerializeObject(savedDeadTitles);
+                dataStore.SyncData(dtKey, ref serialized);
+                savedDeadTitles = null;
+            }
+            else
+            {
+                // Deserializing dead heroes' titles (will be applied in OnSessionLaunched):
+                string? serialized = null;
+                dataStore.SyncData(dtKey, ref serialized);
 
-				dataStore.SyncData(dtKey, ref serialized);
-			}
-			else
-			{
-				// Deserializing dead heroes' titles (will be applied in OnSessionLaunched):
-				hasLoaded = true;
+                if (string.IsNullOrEmpty(serialized))
+                    return;
 
-				string serialized = null;
-				dataStore.SyncData(dtKey, ref serialized);
+                savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
+            }
+        }
 
-				if (serialized.IsStringNoneOrEmpty())
-					return;
+        private void OnNewGameCreated(CampaignGameStarter starter) =>
+            Util.Log.Print($"Starting new campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {CurrentSaveVersion}...");
 
-				savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
-			}
-		}
+        private void OnGameLoaded(CampaignGameStarter starter)
+        {
+            Util.Log.Print($"Loading campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {saveVersion}...");
 
-		protected void OnNewGameCreated(CampaignGameStarter starter) =>
-			Util.Log.Print($"Starting new campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {CurrentSaveVersion}...");
+            // Fix old savegames that might have suffered from chained titles:
+            if (saveVersion < 1)
+            {
+                Util.Log.Print("Due to an old savegame version, stripping all title prefixes from all heroes' names...");
 
-		protected void OnGameLoaded(CampaignGameStarter starter)
-		{
-			Util.Log.Print($"Loading campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {saveVersion}...");
+                foreach (var hero in Hero.All.Where(h => h != Hero.MainHero))
+                {
+                    var name = hero.Name.ToString();
+                    var strippedName = titleDb.StripTitlePrefixes(hero);
 
-			// Fix old savegames that might have suffered from chained titles:
-			if (saveVersion < 1)
-			{
-				Util.Log.Print("Due to an old savegame version, stripping all title prefixes from all heroes' names...");
+                    if (!string.IsNullOrEmpty(strippedName) && !name.Equals(strippedName))
+                    {
+                        Util.Log.Print($" -> Name \"{strippedName}\" previously was \"{name}\"");
+                        hero.Name = new TextObject(strippedName);
+                        RefreshPartyName(hero);
+                    }
+                }
+            }
+        }
 
-				foreach (var hero in Hero.All.Where(h => h != Hero.MainHero))
-				{
-					var name = hero.Name.ToString();
-					var strippedName = titleDb.StripTitlePrefixes(hero);
+        private void OnSessionLaunched(CampaignGameStarter starter)
+        {
+            saveVersion = CurrentSaveVersion; // By now (and no later), it's safe to update the save to the latest savegame version
 
-					if (!strippedName.IsStringNoneOrEmpty() && !name.Equals(strippedName))
-					{
-						Util.Log.Print($" -> Name \"{strippedName}\" previously was \"{name}\"");
-						hero.Name = new TextObject(strippedName);
-						RefreshPartyName(hero);
-					}
-				}
-			}
-		}
+            AddTitlesToLivingHeroes();
 
-		protected void OnSessionLaunched(CampaignGameStarter starter)
-		{
-			hasLoaded = true; // Ensure any future SyncData call is interpreted as serialization
-			saveVersion = CurrentSaveVersion; // By now (and no later), it's safe to update the save to the latest savegame version
+            if (savedDeadTitles is null)
+                return;
 
-			AddTitlesToLivingHeroes();
+            foreach (var item in savedDeadTitles)
+            {
+                if (MBObjectManager.Instance.GetObject(new MBGUID(item.Key)) is not Hero hero)
+                {
+                    Util.Log.Print($">> ERROR: Hero ID lookup failed for hero {item.Key} with title {item.Value}");
+                    continue;
+                }
 
-			if (savedDeadTitles == null)
-				return;
+                AddTitleToHero(hero, item.Value);
+            }
 
-			foreach (var item in savedDeadTitles)
-			{
-				if (!(MBObjectManager.Instance.GetObject(new MBGUID(item.Key)) is Hero hero))
-				{
-					Util.Log.Print($">> ERROR: Hero ID lookup failed for hero {item.Key} with title {item.Value}");
-					continue;
-				}
+            savedDeadTitles = null;
+        }
 
-				AddTitleToHero(hero, item.Value);
-			}
+        private void OnDailyTick()
+        {
+            // Remove and unregister all titles from living heroes
+            RemoveTitlesFromLivingHeroes();
 
-			savedDeadTitles = null;
-		}
+            // Now add currently applicable titles to living heroes
+            AddTitlesToLivingHeroes();
+        }
 
-		protected void OnDailyTick()
-		{
-			// Remove and unregister all titles from living heroes
-			RemoveTitlesFromLivingHeroes();
+        // Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
+        private void OnBeforeSave()
+        {
+            foreach (var at in assignedTitles)
+                RemoveTitleFromHero(at.Key, unregisterTitle: false);
+        }
 
-			// Now add currently applicable titles to living heroes
-			AddTitlesToLivingHeroes();
-		}
+        internal void OnAfterSave() // Called from a Harmony patch rather than event dispatch
+        {
+            // Restore all title prefixes to all heroes using the still-existing assignment records.
+            foreach (var at in assignedTitles)
+                AddTitleToHero(at.Key, at.Value, overrideTitle: true, registerTitle: false);
+        }
 
-		// Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
-		protected void OnBeforeSave()
-		{
-			foreach (var at in assignedTitles)
-				RemoveTitleFromHero(at.Key, unregisterTitle: false);
-		}
+        private void AddTitlesToLivingHeroes()
+        {
+            // All living, titled heroes are associated with kingdoms for now, so go straight to the source
+            Util.Log.Print("Adding kingdom-based noble titles...");
 
-		internal void OnAfterSave() // Called from a Harmony patch rather than event dispatch
-		{
-			// Restore all title prefixes to all heroes using the still-existing assignment records.
-			foreach (var at in assignedTitles)
-				AddTitleToHero(at.Key, at.Value, overrideTitle: true, registerTitle: false);
-		}
+            foreach (var k in Kingdom.All.Where(x => !x.IsEliminated))
+                AddTitlesToKingdomHeroes(k);
+        }
 
-		protected void AddTitlesToLivingHeroes()
-		{
-			// All living, titled heroes are associated with kingdoms for now, so go straight to the source
-			Util.Log.Print("Adding kingdom-based noble titles...");
+        private void AddTitlesToKingdomHeroes(Kingdom kingdom)
+        {
+            var tr = new List<string> { $"Adding noble titles to {kingdom.Name}..." };
 
-			foreach (var k in Kingdom.All.Where(x => !x.IsEliminated))
-				AddTitlesToKingdomHeroes(k);
-		}
+            /* The vassals first...
+             *
+             * We consider all noble, active vassal clans and sort them by their "fief score" and, as a tie-breaker,
+             * their renown in ascending order (weakest -> strongest). For the fief score, 3 castles = 1 town.
+             * Finally, we select the ordered list of their leaders.
+             */
 
-		protected void AddTitlesToKingdomHeroes(Kingdom kingdom)
-		{
-			var tr = new List<string> { $"Adding noble titles to {kingdom.Name}..." };
+            var vassals = kingdom.Clans
+                .Where(c =>
+                    c != kingdom.RulingClan &&
+                    !c.IsClanTypeMercenary &&
+                    !c.IsUnderMercenaryService &&
+                    c.Leader != null &&
+                    c.Leader.IsAlive &&
+                    c.Leader.IsNoble)
+                .OrderBy(c => GetFiefScore(c))
+                .ThenBy(c => c.Renown)
+                .Select(c => c.Leader)
+                .ToList();
 
-			/* The vassals first...
-			 *
-			 * We consider all noble, active vassal clans and sort them by their "fief score" and, as a tie-breaker,
-			 * their renown in ascending order (weakest -> strongest). For the fief score, 3 castles = 1 town.
-			 * Finally, we select the ordered list of their leaders.
-			 */
+            int nBarons = 0;
 
-			var vassals = kingdom.Clans
-				.Where(c =>
-					c != kingdom.RulingClan &&
-					!c.IsClanTypeMercenary &&
-					!c.IsUnderMercenaryService &&
-					c.Leader != null &&
-					c.Leader.IsAlive &&
-					c.Leader.IsNoble)
-				.OrderBy(c => GetFiefScore(c))
-				.ThenBy(c => c.Renown)
-				.Select(c => c.Leader)
-				.ToList();
+            // First, pass over all barons.
+            foreach (var h in vassals)
+            {
+                // Are they a baron?
+                if (GetFiefScore(h.Clan) < 3)
+                {
+                    ++nBarons;
+                    AssignRulerTitle(h, titleDb.GetBaronTitle(kingdom.Culture));
+                    tr.Add(GetHeroTrace(h, "BARON"));
+                }
+                else // They must be a count or duke. We're done here.
+                    break;
+            }
 
-			int nBarons = 0;
+            // The allowed number of dukes is a third of the total non-baron noble vassals.
+            int nBigVassals = vassals.Count - nBarons;
+            int nDukes = nBigVassals / 3; // Round down
+            int nCounts = nBigVassals - nDukes;
+            int maxDukeIdx = vassals.Count - 1;
+            int maxCountIdx = maxDukeIdx - nDukes;
+            int maxBaronIdx = maxCountIdx - nCounts;
 
-			// First, pass over all barons.
-			foreach (var h in vassals)
-			{
-				// Are they a baron?
-				if (GetFiefScore(h.Clan) < 3)
-				{
-					++nBarons;
-					AssignRulerTitle(h, titleDb.GetBaronTitle(kingdom.Culture));
-					tr.Add(GetHeroTrace(h, "BARON"));
-				}
-				else // They must be a count or duke. We're done here.
-					break;
-			}
+            // Counts:
+            for (int i = maxCountIdx; i > maxBaronIdx; --i)
+            {
+                AssignRulerTitle(vassals[i], titleDb.GetCountTitle(kingdom.Culture));
+                tr.Add(GetHeroTrace(vassals[i], "COUNT"));
+            }
 
-			// The allowed number of dukes is a third of the total non-baron noble vassals.
-			int nBigVassals = vassals.Count - nBarons;
-			int nDukes = nBigVassals / 3; // Round down
-			int nCounts = nBigVassals - nDukes;
-			int maxDukeIdx = vassals.Count - 1;
-			int maxCountIdx = maxDukeIdx - nDukes;
-			int maxBaronIdx = maxCountIdx - nCounts;
+            // Dukes:
+            for (int i = maxDukeIdx; i > maxCountIdx; --i)
+            {
+                AssignRulerTitle(vassals[i], titleDb.GetDukeTitle(kingdom.Culture));
+                tr.Add(GetHeroTrace(vassals[i], "DUKE"));
+            }
 
-			// Counts:
-			for (int i = maxCountIdx; i > maxBaronIdx; --i)
-			{
-				AssignRulerTitle(vassals[i], titleDb.GetCountTitle(kingdom.Culture));
-				tr.Add(GetHeroTrace(vassals[i], "COUNT"));
-			}
+            // Finally, the most obvious, the ruler (King) title:
+            if (kingdom.Ruler != null &&
+                !Kingdom.All.Where(k => k != kingdom).SelectMany(k => k.Lords).Where(h => h == kingdom.Ruler).Any()) // fix for stale ruler status in defunct kingdoms
+            {
+                AssignRulerTitle(kingdom.Ruler, titleDb.GetKingTitle(kingdom.Culture));
+                tr.Add(GetHeroTrace(kingdom.Ruler, "KING"));
+            }
 
-			// Dukes:
-			for (int i = maxDukeIdx; i > maxCountIdx; --i)
-			{
-				AssignRulerTitle(vassals[i], titleDb.GetDukeTitle(kingdom.Culture));
-				tr.Add(GetHeroTrace(vassals[i], "DUKE"));
-			}
+            Util.Log.Print(tr);
+        }
 
-			// Finally, the most obvious, the ruler (King) title:
-			if (kingdom.Ruler != null &&
-				!Kingdom.All.Where(k => k != kingdom).SelectMany(k => k.Lords).Where(h => h == kingdom.Ruler).Any()) // fix for stale ruler status in defunct kingdoms
-			{
-				AssignRulerTitle(kingdom.Ruler, titleDb.GetKingTitle(kingdom.Culture));
-				tr.Add(GetHeroTrace(kingdom.Ruler, "KING"));
-			}
+        private string GetHeroTrace(Hero h, string rank) =>
+            $" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} / Renown: {h.Clan.Renown:F0}]";
 
-			Util.Log.Print(tr);
-		}
+        private int GetFiefScore(Clan clan) => clan.Fortifications.Sum(t => t.IsTown ? 3 : 1);
 
-		protected string GetHeroTrace(Hero h, string rank) =>
-			$" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} / Renown: {h.Clan.Renown:F0}]";
+        private void AssignRulerTitle(Hero hero, TitleDb.Entry title)
+        {
+            var titlePrefix = hero.IsFemale ? title.Female : title.Male;
+            AddTitleToHero(hero, titlePrefix);
 
-		protected int GetFiefScore(Clan clan) => clan.Fortifications.Sum(t => t.IsTown ? 3 : 1);
+            // Should their spouse also get the same title (after gender adjustment)?
+            // If the spouse is the leader of a clan (as we currently assume `hero` is a clan leader too,
+            //     it'd also be a different clan) and that clan belongs to any kingdom, no.
+            // Else, yes.
 
-		protected void AssignRulerTitle(Hero hero, TitleDb.Entry title)
-		{
-			var titlePrefix = hero.IsFemale ? title.Female : title.Male;
-			AddTitleToHero(hero, titlePrefix);
+            var spouse = hero.Spouse;
 
-			// Should their spouse also get the same title (after gender adjustment)?
-			// If the spouse is the leader of a clan (as we currently assume `hero` is a clan leader too,
-			//     it'd also be a different clan) and that clan belongs to any kingdom, no.
-			// Else, yes.
+            if (spouse == null ||
+                spouse.IsDead ||
+                (spouse.Clan?.Leader == spouse && spouse.Clan.Kingdom != null))
+                return;
 
-			var spouse = hero.Spouse;
+            // Sure. Give the spouse the ruler consort title, which is currently and probably always will
+            // be the same as the ruler title, adjusted for gender.
 
-			if (spouse == null ||
-				spouse.IsDead ||
-				(spouse.Clan?.Leader == spouse && spouse.Clan.Kingdom != null))
-				return;
+            titlePrefix = spouse.IsFemale ? title.Female : title.Male;
+            AddTitleToHero(spouse, titlePrefix);
+        }
 
-			// Sure. Give the spouse the ruler consort title, which is currently and probably always will
-			// be the same as the ruler title, adjusted for gender.
+        private void AddTitleToHero(Hero hero, string titlePrefix, bool overrideTitle = false, bool registerTitle = true)
+        {
+            if (assignedTitles.TryGetValue(hero, out string oldTitlePrefix))
+            {
+                if (overrideTitle && !titlePrefix.Equals(oldTitlePrefix))
+                    RemoveTitleFromHero(hero);
+                else if (!overrideTitle)
+                {
+                    Util.Log.Print($">> WARNING: Tried to add title \"{titlePrefix}\" to hero \"{hero.Name}\" with pre-assigned title \"{oldTitlePrefix}\"");
+                    return;
+                }
+            }
 
-			titlePrefix = spouse.IsFemale ? title.Female : title.Male;
-			AddTitleToHero(spouse, titlePrefix);
-		}
+            if (registerTitle)
+                assignedTitles[hero] = titlePrefix;
 
-		protected void AddTitleToHero(Hero hero, string titlePrefix, bool overrideTitle = false, bool registerTitle = true)
-		{
-			if (assignedTitles.TryGetValue(hero, out string oldTitlePrefix))
-			{
-				if (overrideTitle && !titlePrefix.Equals(oldTitlePrefix))
-					RemoveTitleFromHero(hero);
-				else if (!overrideTitle)
-				{
-					Util.Log.Print($">> WARNING: Tried to add title \"{titlePrefix}\" to hero \"{hero.Name}\" with pre-assigned title \"{oldTitlePrefix}\"");
-					return;
-				}
-			}
+            hero.Name = new TextObject(titlePrefix + hero.Name.ToString());
+            RefreshPartyName(hero);
+        }
 
-			if (registerTitle)
-				assignedTitles[hero] = titlePrefix;
+        private void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
+        {
+            foreach (var h in assignedTitles.Keys.Where(h => h.IsAlive).ToList())
+                RemoveTitleFromHero(h, unregisterTitles);
+        }
 
-			hero.Name = new TextObject(titlePrefix + hero.Name.ToString());
-			RefreshPartyName(hero);
-		}
+        private void RemoveTitleFromHero(Hero hero, bool unregisterTitle = true)
+        {
+            var name = hero.Name.ToString();
+            var title = assignedTitles[hero];
 
-		protected void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
-		{
-			foreach (var h in assignedTitles.Keys.Where(h => h.IsAlive).ToList())
-				RemoveTitleFromHero(h, unregisterTitles);
-		}
+            if (!name.StartsWith(title))
+            {
+                Util.Log.Print(">> WARNING: Expected title prefix not found in hero name! Title prefix: \"{title}\" | Name: \"{name}\"");
+                return;
+            }
 
-		protected void RemoveTitleFromHero(Hero hero, bool unregisterTitle = true)
-		{
-			var name = hero.Name.ToString();
-			var title = assignedTitles[hero];
+            if (unregisterTitle)
+                assignedTitles.Remove(hero);
 
-			if (!name.StartsWith(title))
-			{
-				Util.Log.Print(">> WARNING: Expected title prefix not found in hero name! Title prefix: \"{title}\" | Name: \"{name}\"");
-				return;
-			}
+            hero.Name = new TextObject(name.Remove(0, title.Length));
+            RefreshPartyName(hero);
+        }
 
-			if (unregisterTitle)
-				assignedTitles.Remove(hero);
+        private void RefreshPartyName(Hero hero)
+        {
+            var party = hero.PartyBelongedTo;
 
-			hero.Name = new TextObject(name.Remove(0, title.Length));
-			RefreshPartyName(hero);
-		}
+            if (party?.LeaderHero == hero)
+                party.Name = MobilePartyHelper.GeneratePartyName(hero.CharacterObject);
+        }
 
-		protected void RefreshPartyName(Hero hero)
-		{
-			var party = hero.PartyBelongedTo;
+        private readonly Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
 
-			if (party?.LeaderHero == hero)
-				party.Name = MobilePartyHelper.GeneratePartyName(hero.CharacterObject);
-		}
+        private readonly TitleDb titleDb = new TitleDb();
 
-		private Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
+        private Dictionary<uint, string>? savedDeadTitles; // Maps an MBGUID to a static title prefix for dead heroes, only used for (de)serialization
 
-		private Dictionary<uint, string> savedDeadTitles; // Maps an MBGUID to a static title prefix for dead heroes, only used for (de)serialization
+        private int saveVersion = 0;
 
-		private readonly TitleDb titleDb = new TitleDb();
-
-		private bool hasLoaded = false; // If true, any SyncData call will be interpreted as serialization/saving
-
-		private const int CurrentSaveVersion = 1;
-		private int saveVersion = 0;
-	}
+        private const int CurrentSaveVersion = 1;
+    }
 }
