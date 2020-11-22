@@ -5,10 +5,13 @@ using TaleWorlds.SaveSystem;
 
 namespace NobleTitles.Patches
 {
-	[HarmonyPatch(typeof(Game), "Save")]
-	class GamePatch
-	{
-		static void Postfix(MetaData metaData, ISaveDriver driver) =>
-			Campaign.Current?.CampaignBehaviorManager.GetBehavior<TitleBehavior>().OnAfterSave();
-	}
+    [HarmonyPatch(typeof(Game), "Save")]
+    internal sealed class GamePatch
+    {
+        private static void Postfix(MetaData metaData, ISaveDriver driver)
+        {
+            _ = (metaData, driver);
+            Campaign.Current?.CampaignBehaviorManager.GetBehavior<TitleBehavior>()?.OnAfterSave();
+        }
+    }
 }
