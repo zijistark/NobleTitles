@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -12,8 +13,8 @@ namespace NobleTitles
         public const int SemVerMajor = 1;
         public const int SemVerMinor = 1;
         public const int SemVerPatch = 5;
-        public const string SemVerSpecial = "beta1";
-        private static readonly string SemVerEnd = (SemVerSpecial != null) ? '-' + SemVerSpecial : string.Empty;
+        public static readonly string SemVerSpecial = null!;
+        private static readonly string SemVerEnd = (SemVerSpecial is not null) ? "-" + SemVerSpecial : string.Empty;
         public static readonly string Version = $"{SemVerMajor}.{SemVerMinor}.{SemVerPatch}{SemVerEnd}";
 
         public static readonly string Name = typeof(SubModule).Namespace;
