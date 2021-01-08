@@ -1,4 +1,6 @@
-﻿using HarmonyLib;
+﻿using NobleTitles.Patches;
+
+using HarmonyLib;
 
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -12,7 +14,7 @@ namespace NobleTitles
         /* Semantic Versioning (https://semver.org): */
         public const int SemVerMajor = 1;
         public const int SemVerMinor = 1;
-        public const int SemVerPatch = 6;
+        public const int SemVerPatch = 7;
         public const string SemVerSpecial = "beta1";
         private static readonly string SemVerEnd = (SemVerSpecial != null) ? '-' + SemVerSpecial : string.Empty;
         public static readonly string Version = $"{SemVerMajor}.{SemVerMinor}.{SemVerPatch}{SemVerEnd}";
@@ -28,25 +30,33 @@ namespace NobleTitles
             base.OnSubModuleLoad();
             Util.EnableLog = true; // enable various debug logging
             Util.EnableTracer = true; // enable code event tracing (requires enabled logging)
+
+            if (!SaveManagerPatch.Apply(new Harmony(HarmonyDomain)))
+            {
+                Util.Log.Print($"Patch was required! Canceling {DisplayName}...");
+                canceled = true;
+            }
         }
 
         protected override void OnBeforeInitialModuleScreenSetAsRoot()
         {
             base.OnBeforeInitialModuleScreenSetAsRoot();
 
-            if (!hasLoaded)
+            if (!hasLoaded && !canceled)
             {
-                new Harmony(HarmonyDomain).PatchAll();
                 InformationManager.DisplayMessage(new InformationMessage($"Loaded {DisplayName}", ImportantTextColor));
                 hasLoaded = true;
             }
+
+            if (canceled)
+                InformationManager.DisplayMessage(new InformationMessage($"Error loading {DisplayName}: Disabled!", ImportantTextColor));
         }
 
         protected override void OnGameStart(Game game, IGameStarter starterObject)
         {
             base.OnGameStart(game, starterObject);
 
-            if (game.GameType is Campaign)
+            if (!canceled && game.GameType is Campaign)
             {
                 var initializer = (CampaignGameStarter)starterObject;
                 initializer.AddBehavior(new TitleBehavior());
@@ -54,5 +64,6 @@ namespace NobleTitles
         }
 
         private bool hasLoaded;
+        private bool canceled;
     }
 }

@@ -117,12 +117,16 @@ namespace NobleTitles
         // Leave no trace in the save. Remove all titles from all heroes. Keep their assignment records.
         private void OnBeforeSave()
         {
+            Util.Log.Print($"{nameof(OnBeforeSave)}: Temporarily removing title prefixes from all heroes...");
+
             foreach (var at in assignedTitles)
                 RemoveTitleFromHero(at.Key, unregisterTitle: false);
         }
 
         internal void OnAfterSave() // Called from a Harmony patch rather than event dispatch
         {
+            Util.Log.Print($"{nameof(OnAfterSave)}: Restoring title prefixes to all heroes...");
+
             // Restore all title prefixes to all heroes using the still-existing assignment records.
             foreach (var at in assignedTitles)
                 AddTitleToHero(at.Key, at.Value, overrideTitle: true, registerTitle: false);
@@ -272,7 +276,7 @@ namespace NobleTitles
 
             if (!name.StartsWith(title))
             {
-                Util.Log.Print(">> WARNING: Expected title prefix not found in hero name! Title prefix: \"{title}\" | Name: \"{name}\"");
+                Util.Log.Print($">> WARNING: Expected title prefix not found in hero name when removing title! Title prefix: \"{title}\" | Name: \"{name}\"");
                 return;
             }
 
