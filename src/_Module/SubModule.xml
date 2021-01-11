@@ -1,10 +1,10 @@
 ﻿<Module>
   <Name value="Noble Titles"/>
-  <Id value="NobleTitles"/>
+  <Id value="$modulename$"/>
   <Version value="v$version$"/>
+  <Url value="https://www.nexusmods.com/mountandblade2bannerlord/mods/2089" />
   <SingleplayerModule value="true"/>
   <MultiplayerModule value="false"/>
-  <Url value="https://www.nexusmods.com/mountandblade2bannerlord/mods/2089" />
   <DependedModules>
     <DependedModule Id="Native"/>
     <DependedModule Id="SandBoxCore"/>
@@ -13,9 +13,9 @@
   </DependedModules>
   <SubModules>
     <SubModule>
-      <Name value="NobleTitles"/>
-      <DLLName value="NobleTitles.dll"/>
-      <SubModuleClassType value="NobleTitles.SubModule"/>
+      <Name value="$modulename$"/>
+      <DLLName value="$modulename$.dll"/>
+      <SubModuleClassType value="$modulename$.SubModule"/>
       <Tags />
     </SubModule>
   </SubModules>
