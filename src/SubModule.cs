@@ -14,7 +14,7 @@ namespace NobleTitles
         /* Semantic Versioning (https://semver.org): */
         public const int SemVerMajor = 1;
         public const int SemVerMinor = 1;
-        public const int SemVerPatch = 6;
+        public const int SemVerPatch = 7;
         public static readonly string? SemVerSpecial = null;
         private static readonly string SemVerEnd = (SemVerSpecial is not null) ? "-" + SemVerSpecial : string.Empty;
         public static readonly string Version = $"{SemVerMajor}.{SemVerMinor}.{SemVerPatch}{SemVerEnd}";
@@ -57,10 +57,7 @@ namespace NobleTitles
             base.OnGameStart(game, starterObject);
 
             if (!canceled && game.GameType is Campaign)
-            {
-                var initializer = (CampaignGameStarter)starterObject;
-                initializer.AddBehavior(new TitleBehavior());
-            }
+                ((CampaignGameStarter)starterObject).AddBehavior(new TitleBehavior());
         }
 
         private bool hasLoaded;

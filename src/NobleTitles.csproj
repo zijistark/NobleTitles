@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.1.6</Version>
+    <Version>1.1.7</Version>
     <ModuleName>$(MSBuildProjectName)</ModuleName>
   </PropertyGroup>
   
@@ -15,7 +15,7 @@
 
   <!-- Versions of Major Dependencies -->
   <PropertyGroup>
-    <BuildResourcesVersion>1.0.0.32</BuildResourcesVersion>
+    <BuildResourcesVersion>1.0.0.33</BuildResourcesVersion>
     <HarmonyVersion>2.0.4</HarmonyVersion>
   </PropertyGroup>
 
@@ -29,8 +29,8 @@
 
   <!-- Game Versions for Stable and Beta -->
   <PropertyGroup>
-    <GameVersion Condition="$(IsStable)">1.5.5</GameVersion>
-    <GameVersion Condition="$(IsBeta)">1.5.6</GameVersion>
+    <GameVersion Condition="$(IsStable)">1.5.6</GameVersion>
+    <GameVersion Condition="$(IsBeta)">1.5.7</GameVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -68,12 +68,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" IncludeAssets="compile" />
+    <!-- Emulating NET5 in NET472 -->
     <PackageReference Include="IsExternalInit" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Lib.Harmony" Version="$(HarmonyVersion)" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" IncludeAssets="compile" />
     <PackageReference Include="Nullable" Version="1.3.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -82,7 +83,7 @@
 
   <ItemGroup>
     <!-- Bannerlord Native Assemblies -->
-    <Reference Include="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds*.dll">
+    <Reference Include="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds*.dll" Exclude="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds.Native.dll">
       <HintPath>%(Identity)</HintPath>
       <Private>False</Private>
     </Reference>
@@ -100,6 +101,10 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="$(GameFolder)\Modules\StoryMode\bin\Win64_Shipping_Client\*.dll">
+      <HintPath>%(Identity)</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(GameFolder)\Modules\CustomBattle\bin\Win64_Shipping_Client\*.dll">
       <HintPath>%(Identity)</HintPath>
       <Private>False</Private>
     </Reference>

@@ -217,7 +217,7 @@ namespace NobleTitles
         private string GetHeroTrace(Hero h, string rank) =>
             $" -> {rank}: {h.Name} [Fief Score: {GetFiefScore(h.Clan)} / Renown: {h.Clan.Renown:F0}]";
 
-        private int GetFiefScore(Clan clan) => clan.Fortifications.Sum(t => t.IsTown ? 3 : 1);
+        private int GetFiefScore(Clan clan) => clan.Fiefs.Sum(t => t.IsTown ? 3 : 1);
 
         private void AssignRulerTitle(Hero hero, TitleDb.Entry title)
         {
@@ -287,12 +287,14 @@ namespace NobleTitles
             RefreshPartyName(hero);
         }
 
-        private void RefreshPartyName(Hero hero)
+        private static void RefreshPartyName(Hero hero)
         {
+#if STABLE
             var party = hero.PartyBelongedTo;
 
             if (party?.LeaderHero == hero)
                 party.Name = MobilePartyHelper.GeneratePartyName(hero.CharacterObject);
+#endif
         }
 
         private readonly Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
