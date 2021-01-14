@@ -19,20 +19,13 @@
     <HarmonyVersion>2.0.4</HarmonyVersion>
   </PropertyGroup>
 
-  <!-- Whether The Active Configuration is Stable or Beta -->
-  <PropertyGroup>
-    <IsStable>false</IsStable>
-    <IsStable Condition="$(Configuration.Contains('Stable'))">true</IsStable>
-    <IsBeta>false</IsBeta>
-    <IsBeta Condition="$(Configuration.Contains('Beta'))">true</IsBeta>
-  </PropertyGroup>
-
   <!-- Game Versions for Stable and Beta -->
   <PropertyGroup>
     <GameVersion Condition="$(IsStable)">1.5.6</GameVersion>
     <GameVersion Condition="$(IsBeta)">1.5.7</GameVersion>
   </PropertyGroup>
 
+  <!-- Game Folder(s) -->
   <PropertyGroup>
     <!--
     Bannerlord's Root Folder. Leave empty if you want to try autoresolution. Recommended setup is to set, as an
@@ -83,7 +76,8 @@
 
   <ItemGroup>
     <!-- Bannerlord Native Assemblies -->
-    <Reference Include="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds*.dll" Exclude="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds.Native.dll">
+    <Reference Include="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds*.dll"
+    	       Exclude="$(GameFolder)\bin\Win64_Shipping_Client\TaleWorlds.Native.dll">
       <HintPath>%(Identity)</HintPath>
       <Private>False</Private>
     </Reference>
@@ -101,10 +95,6 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="$(GameFolder)\Modules\StoryMode\bin\Win64_Shipping_Client\*.dll">
-      <HintPath>%(Identity)</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="$(GameFolder)\Modules\CustomBattle\bin\Win64_Shipping_Client\*.dll">
       <HintPath>%(Identity)</HintPath>
       <Private>False</Private>
     </Reference>

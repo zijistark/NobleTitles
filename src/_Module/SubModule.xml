@@ -1,8 +1,11 @@
-﻿<Module>
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Module>
   <Name value="Noble Titles"/>
   <Id value="$modulename$"/>
   <Version value="v$version$"/>
   <Url value="https://www.nexusmods.com/mountandblade2bannerlord/mods/2089" />
+  <Official value="false"/>
+  <DefaultModule value="false"/>
   <SingleplayerModule value="true"/>
   <MultiplayerModule value="false"/>
   <DependedModules>
@@ -11,6 +14,13 @@
     <DependedModule Id="Sandbox"/>
     <DependedModule Id="StoryMode"/>
   </DependedModules>
+  <DependedModuleMetadatas>
+    <DependedModuleMetadata id="Native" order="LoadBeforeThis" version="e$gameversion$.*" />
+    <DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" version="e$gameversion$.*" />
+    <DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" version="e$gameversion$.*" />
+    <DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" version="e$gameversion$.*" />
+    <DependedModuleMetadata id="CustomBattle" order="LoadBeforeThis" version="e$gameversion$.*" optional="true" />
+  </DependedModuleMetadatas>
   <SubModules>
     <SubModule>
       <Name value="$modulename$"/>
