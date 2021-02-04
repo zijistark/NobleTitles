@@ -4,7 +4,6 @@ using System.Linq;
 
 using Newtonsoft.Json;
 
-using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
@@ -76,7 +75,6 @@ namespace NobleTitles
                     {
                         Util.Log.Print($" -> Name \"{strippedName}\" previously was \"{name}\"");
                         hero.Name = new TextObject(strippedName);
-                        RefreshPartyName(hero);
                     }
                 }
             }
@@ -260,7 +258,6 @@ namespace NobleTitles
                 assignedTitles[hero] = titlePrefix;
 
             hero.Name = new TextObject(titlePrefix + hero.Name.ToString());
-            RefreshPartyName(hero);
         }
 
         private void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
@@ -284,17 +281,6 @@ namespace NobleTitles
                 assignedTitles.Remove(hero);
 
             hero.Name = new TextObject(name.Remove(0, title.Length));
-            RefreshPartyName(hero);
-        }
-
-        private static void RefreshPartyName(Hero hero)
-        {
-#if STABLE
-            var party = hero.PartyBelongedTo;
-
-            if (party?.LeaderHero == hero)
-                party.Name = MobilePartyHelper.GeneratePartyName(hero.CharacterObject);
-#endif
         }
 
         private readonly Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
