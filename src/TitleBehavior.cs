@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Conversation.Tags;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 
@@ -32,16 +33,16 @@ namespace NobleTitles
             if (dataStore.IsSaving)
             {
                 // Serializing dead heroes' titles:
-                savedDeadTitles = new Dictionary<uint, string>();
+                savedDeadTitles = new();
 
                 foreach (var at in assignedTitles.Where(item => item.Key.IsDead))
-                    savedDeadTitles[at.Key.Id.InternalValue] = at.Value;
+                    savedDeadTitles[at.Key.StringId] = at.Value;
 
                 string serialized = JsonConvert.SerializeObject(savedDeadTitles);
                 dataStore.SyncData(dtKey, ref serialized);
                 savedDeadTitles = null;
             }
-            else
+            else if (saveVersion >= 2)
             {
                 // Deserializing dead heroes' titles (will be applied in OnSessionLaunched):
                 string? serialized = null;
@@ -50,35 +51,17 @@ namespace NobleTitles
                 if (string.IsNullOrEmpty(serialized))
                     return;
 
-                savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<uint, string>>(serialized);
+                savedDeadTitles = JsonConvert.DeserializeObject<Dictionary<string, string>>(serialized);
             }
+            else
+                Util.Log.Print($"Savegame version of {saveVersion}: skipping deserialization of dead noble titles...");
         }
 
         private void OnNewGameCreated(CampaignGameStarter starter) =>
             Util.Log.Print($"Starting new campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {CurrentSaveVersion}...");
 
-        private void OnGameLoaded(CampaignGameStarter starter)
-        {
+        private void OnGameLoaded(CampaignGameStarter starter) =>
             Util.Log.Print($"Loading campaign on {SubModule.Name} v{SubModule.Version} with savegame version of {saveVersion}...");
-
-            // Fix old savegames that might have suffered from chained titles:
-            if (saveVersion < 1)
-            {
-                Util.Log.Print("Due to an old savegame version, stripping all title prefixes from all heroes' names...");
-
-                foreach (var hero in Hero.All.Where(h => h != Hero.MainHero))
-                {
-                    var name = hero.Name.ToString();
-                    var strippedName = titleDb.StripTitlePrefixes(hero);
-
-                    if (!string.IsNullOrEmpty(strippedName) && !name.Equals(strippedName))
-                    {
-                        Util.Log.Print($" -> Name \"{strippedName}\" previously was \"{name}\"");
-                        hero.Name = new TextObject(strippedName);
-                    }
-                }
-            }
-        }
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
@@ -91,7 +74,7 @@ namespace NobleTitles
 
             foreach (var item in savedDeadTitles)
             {
-                if (MBObjectManager.Instance.GetObject(new MBGUID(item.Key)) is not Hero hero)
+                if (Campaign.Current.CampaignObjectManager.Find<Hero>(item.Key) is not Hero hero)
                 {
                     Util.Log.Print($">> ERROR: Hero ID lookup failed for hero {item.Key} with title {item.Value}");
                     continue;
@@ -257,7 +240,8 @@ namespace NobleTitles
             if (registerTitle)
                 assignedTitles[hero] = titlePrefix;
 
-            hero.Name = new TextObject(titlePrefix + hero.Name.ToString());
+            var name = hero.Name.ToString();
+            hero.SetName(new TextObject(titlePrefix + name), new TextObject(name));
         }
 
         private void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
@@ -280,17 +264,17 @@ namespace NobleTitles
             if (unregisterTitle)
                 assignedTitles.Remove(hero);
 
-            hero.Name = new TextObject(name.Remove(0, title.Length));
+            hero.SetName(new TextObject(name.Remove(0, title.Length)));
         }
 
         private readonly Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
 
         private readonly TitleDb titleDb = new TitleDb();
 
-        private Dictionary<uint, string>? savedDeadTitles; // Maps an MBGUID to a static title prefix for dead heroes, only used for (de)serialization
+        private Dictionary<string, string>? savedDeadTitles; // Maps a Hero's string ID to a static title prefix for dead heroes, only used for (de)serialization
 
         private int saveVersion = 0;
 
-        private const int CurrentSaveVersion = 1;
+        private const int CurrentSaveVersion = 2;
     }
 }
