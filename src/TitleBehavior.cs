@@ -5,9 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Conversation.Tags;
 using TaleWorlds.Localization;
-using TaleWorlds.ObjectSystem;
 
 namespace NobleTitles
 {
@@ -74,7 +72,7 @@ namespace NobleTitles
 
             foreach (var item in savedDeadTitles)
             {
-                if (Campaign.Current.CampaignObjectManager.Find<Hero>(item.Key) is not Hero hero)
+                if (Campaign.Current.CampaignObjectManager.DeadAndDisabledHeroes.FirstOrDefault(h => h.StringId == item.Key) is not Hero hero)
                 {
                     Util.Log.Print($">> ERROR: Hero ID lookup failed for hero {item.Key} with title {item.Value}");
                     continue;
@@ -241,7 +239,7 @@ namespace NobleTitles
                 assignedTitles[hero] = titlePrefix;
 
             var name = hero.Name.ToString();
-            hero.SetName(new TextObject(titlePrefix + name), new TextObject(name));
+            hero.Name = new TextObject(titlePrefix + name);
         }
 
         private void RemoveTitlesFromLivingHeroes(bool unregisterTitles = true)
@@ -264,7 +262,7 @@ namespace NobleTitles
             if (unregisterTitle)
                 assignedTitles.Remove(hero);
 
-            hero.SetName(new TextObject(name.Remove(0, title.Length)));
+            hero.Name = new TextObject(name.Remove(0, title.Length));
         }
 
         private readonly Dictionary<Hero, string> assignedTitles = new Dictionary<Hero, string>();
