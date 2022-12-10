@@ -187,16 +187,8 @@ namespace NobleTitles
                         if (governor != null)
                             if (!this.assignedTitles.Keys.Contains(governor))
                             {
-                                try
-                                {
-                                    lines.Add("Adding fovernor titles.");
-                                    this.AssignRulerTitle(governor, this.titleDb.GetGovernorTitle(kingdom.Culture));
-                                }
-                                catch (Exception e)
-                                {
-                                    lines.Add("Error adding governor title.");
-                                    lines.Add(e.Message); break;
-                                }
+                                lines.Add("Adding fovernor titles.");
+                                this.AssignRulerTitle(governor, this.titleDb.GetGovernorTitle(kingdom.Culture));
                             }
                     }
                 }

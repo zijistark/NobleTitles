@@ -120,6 +120,7 @@ namespace NobleTitles
                     cultureEntry2.Baron.Female = cultureEntry2.Baron.Male;
                 if (string.IsNullOrWhiteSpace(cultureEntry2.Governor.Female))
                     cultureEntry2.Governor.Female = cultureEntry2.Governor.Male;
+
                 cultureEntry2.King.Male += " ";
                 cultureEntry2.King.Female += " ";
                 cultureEntry2.Duke.Male += " ";
@@ -130,6 +131,7 @@ namespace NobleTitles
                 cultureEntry2.Baron.Female += " ";
                 cultureEntry2.Governor.Male += " ";
                 cultureEntry2.Governor.Female += " ";
+
                 if (str == "default")
                     this.noCulture = cultureEntry2;
 
