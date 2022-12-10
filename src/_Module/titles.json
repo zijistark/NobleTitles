@@ -15,6 +15,10 @@
     "Baron": {
       "Male": "Baron",
       "Female": "Baroness"
+    },
+    "Governor": {
+      "Male": "Governor",
+      "Female": "Governess"
     }
   },
   "vlandia": {
@@ -33,6 +37,10 @@
     "Baron": {
       "Male": "Baron",
       "Female": "Baroness"
+    },
+    "Governor": {
+      "Male": "Mayor",
+      "Female": "Mayor"
     }
   },
   "empire": {
@@ -41,8 +49,8 @@
       "Female": "Empress"
     },
     "Duke": {
-      "Male": "Duke",
-      "Female": "Duchess"
+      "Male": "Doux",
+      "Female": "Doux"
     },
     "Count": {
       "Male": "Catepan",
@@ -51,6 +59,10 @@
     "Baron": {
       "Male": "Strategos",
       "Female": "Kyria"
+    },
+    "Governor": {
+      "Male": "Kephale",
+      "Female": "Kephale"
     }
   },
   "sturgia": {
@@ -69,6 +81,10 @@
     "Baron": {
       "Male": "Boyar",
       "Female": "Boyarina"
+    },
+    "Governor": {
+      "Male": "Thane",
+      "Female": "Thane"
     }
   },
   "battania": {
@@ -87,6 +103,10 @@
     "Baron": {
       "Male": "Chief",
       "Female": "Chieftess"
+    },
+    "Governor": {
+      "Male": "Corono",
+      "Female": "Corono"
     }
   },
   "khuzait": {
@@ -105,6 +125,10 @@
     "Baron": {
       "Male": "Bey",
       "Female": "Begum"
+    },
+    "Governor": {
+      "Male": "Governor",
+      "Female": "Governess"
     }
   },
   "aserai": {
@@ -123,6 +147,10 @@
     "Baron": {
       "Male": "Sheikh",
       "Female": "Sheikha"
+    },
+    "Governor": {
+      "Male": "Governor",
+      "Female": "Governess"
     }
   }
 }

@@ -1,100 +1,106 @@
-﻿using System;
+﻿// Decompiled with JetBrains decompiler
+// Type: NobleTitles.Util
+// Assembly: NobleTitles, Version=1.2.0.0, Culture=neutral, PublicKeyToken=null
+// MVID: 1ECF68F4-B6F2-4499-99A9-27E0EE6B0499
+// Assembly location: G:\OneDrive - Mathis Consulting, LLC\Desktop\NobleTitles.dll
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using TaleWorlds.CampaignSystem;
 
+
+#nullable enable
 namespace NobleTitles
 {
-    class Util
+  internal class Util
+  {
+    internal static LogBase Log = new LogBase();
+
+    internal static bool EnableLog
     {
-        internal static bool EnableLog
+      get => Util.Log is NobleTitles.Log;
+      set
+      {
+        if (Util.Log is NobleTitles.Log && !value)
         {
-            get => Log is Log; // Log, derived from LogBase, provides thread-safe logging
-            set
-            {
-                if (Log is Log && !value)
-                    Log = new LogBase();
-                else if (!(Log is Log) && value)
-                    Log = new Log(truncate: true, logName: "debug");
-            }
+          Util.Log = new LogBase();
         }
-
-        internal static bool EnableTracer { get; set; } = false;
-
-        internal static LogBase Log = new LogBase(); // LogBase, parent of Log, implements do-nothing virtual output methods
-
-        internal static class EventTracer
+        else
         {
-            private static readonly ConcurrentDictionary<string, bool> _stackTraceMap = new ConcurrentDictionary<string, bool>();
-
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            internal static void Trace(string extraInfo, int framesToSkip = 1) => Trace(new List<string> { extraInfo }, framesToSkip + 1);
-
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            internal static void Trace(List<string>? extraInfo = null, int framesToSkip = 1)
-            {
-                if (!EnableTracer || !EnableLog)
-                    return;
-
-                var st = new StackTrace(framesToSkip, true);
-                var frames = st.GetFrames();
-                var evtMethod = frames[0].GetMethod();
-
-                var msg = new List<string>
-                {
-                    $"Code Event Invoked: {evtMethod.DeclaringType}.{evtMethod.Name}",
-                    $"Real Timestamp:     {DateTime.Now:MM/dd H:mm:ss.fff}",
-                };
-
-                if (Campaign.Current is not null)
-                {
-                    msg.AddRange(new List<string>
-                    {
-                        $"Campaign Time:      {CampaignTime.Now}",
-                        $"  Elapsed Years:    {Campaign.Current.CampaignStartTime.ElapsedYearsUntilNow:F3}",
-                        $"  Elapsed Days:     {Campaign.Current.CampaignStartTime.ElapsedDaysUntilNow:F2}",
-                        $"  Elapsed Hours:    {Campaign.Current.CampaignStartTime.ElapsedHoursUntilNow:F2}",
-                    });
-                }
-
-                var stStr = st.ToString();
-
-                if (stStr.Length > 2)
-                {
-                    // ensure we're using Unix-style EOLs in the stack trace & remove extra newline at end
-                    stStr = stStr.Replace("\r\n", "\n");
-                    stStr = stStr.Remove(stStr.Length - 1, 1);
-
-                    // only show a distinct stack trace once per event traced
-                    if (_stackTraceMap.TryAdd(stStr, true))
-                    {
-                        msg.AddRange(new List<string>
-                        {
-                            string.Empty,
-                            "Stack Trace:",
-                            stStr,
-                        });
-                    }
-                }
-
-                if (extraInfo is not null && extraInfo.Count > 0)
-                {
-                    msg.AddRange(new List<string>
-                    {
-                        string.Empty,
-                        "Extra Information:",
-                    });
-
-                    if (extraInfo.Count > 1)
-                        msg.Add(string.Empty);
-
-                    msg.AddRange(extraInfo);
-                }
-
-                Log.Print(msg);
-            }
+          if (!(!(Util.Log is NobleTitles.Log) & value))
+            return;
+          Util.Log = (LogBase) new NobleTitles.Log(true, "debug");
         }
+      }
     }
+
+    internal static bool EnableTracer { get; set; } = false;
+
+    internal static class EventTracer
+    {
+      private static readonly ConcurrentDictionary<string, bool> _stackTraceMap = new ConcurrentDictionary<string, bool>();
+
+      [MethodImpl(MethodImplOptions.NoInlining)]
+      internal static void Trace(string extraInfo, int framesToSkip = 1) => Util.EventTracer.Trace(new List<string>()
+      {
+        extraInfo
+      }, framesToSkip + 1);
+
+      [MethodImpl(MethodImplOptions.NoInlining)]
+      internal static void Trace(List<string>? extraInfo = null, int framesToSkip = 1)
+      {
+        if (!Util.EnableTracer || !Util.EnableLog)
+          return;
+        StackTrace stackTrace = new StackTrace(framesToSkip, true);
+        MethodBase method = stackTrace.GetFrames()[0].GetMethod();
+        List<string> lines = new List<string>()
+        {
+          string.Format("Code Event Invoked: {0}.{1}", (object) method.DeclaringType, (object) method.Name),
+          string.Format("Real Timestamp:     {0:MM/dd H:mm:ss.fff}", (object) DateTime.Now)
+        };
+        if (Campaign.Current != null)
+        {
+          List<string> stringList = lines;
+          List<string> collection = new List<string>();
+          collection.Add(string.Format("Campaign Time:      {0}", (object) CampaignTime.Now));
+          CampaignTime campaignStartTime = Campaign.Current.CampaignStartTime;
+          collection.Add(string.Format("  Elapsed Years:    {0:F3}", (object) campaignStartTime.ElapsedYearsUntilNow));
+          campaignStartTime = Campaign.Current.CampaignStartTime;
+          collection.Add(string.Format("  Elapsed Days:     {0:F2}", (object) campaignStartTime.ElapsedDaysUntilNow));
+          campaignStartTime = Campaign.Current.CampaignStartTime;
+          collection.Add(string.Format("  Elapsed Hours:    {0:F2}", (object) campaignStartTime.ElapsedHoursUntilNow));
+          stringList.AddRange((IEnumerable<string>) collection);
+        }
+        string str1 = stackTrace.ToString();
+        if (str1.Length > 2)
+        {
+          string str2 = str1.Replace("\r\n", "\n");
+          string key = str2.Remove(str2.Length - 1, 1);
+          if (Util.EventTracer._stackTraceMap.TryAdd(key, true))
+            lines.AddRange((IEnumerable<string>) new List<string>()
+            {
+              string.Empty,
+              "Stack Trace:",
+              key
+            });
+        }
+        if (extraInfo != null && extraInfo.Count > 0)
+        {
+          lines.AddRange((IEnumerable<string>) new List<string>()
+          {
+            string.Empty,
+            "Extra Information:"
+          });
+          if (extraInfo.Count > 1)
+            lines.Add(string.Empty);
+          lines.AddRange((IEnumerable<string>) extraInfo);
+        }
+        Util.Log.Print(lines);
+      }
+    }
+  }
 }

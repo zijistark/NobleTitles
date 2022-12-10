@@ -1,146 +1,193 @@
-﻿using System;
+﻿// Decompiled with JetBrains decompiler
+// Type: NobleTitles.TitleDb
+// Assembly: NobleTitles, Version=1.2.0.0, Culture=neutral, PublicKeyToken=null
+// MVID: 1ECF68F4-B6F2-4499-99A9-27E0EE6B0499
+// Assembly location: G:\OneDrive - Mathis Consulting, LLC\Desktop\NobleTitles.dll
+
+using Newtonsoft.Json;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
+
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 
+
+#nullable enable
 namespace NobleTitles
 {
-    class TitleDb
+    internal class TitleDb
     {
-        internal Entry GetKingTitle(CultureObject culture) =>
-            culture is null || !cultureMap.TryGetValue(culture.StringId, out var culEntry) ? noCulture.King : culEntry.King;
+        protected Dictionary<string, TitleDb.CultureEntry> cultureMap;
+        protected TitleDb.CultureEntry noCulture = new TitleDb.CultureEntry(new TitleDb.Entry("King", "Queen"), new TitleDb.Entry("Duke", "Duchess"), new TitleDb.Entry("Count", "Countess"), new TitleDb.Entry("Baron", "Baroness"), new TitleDb.Entry("Governor", "Governor"));
 
-        internal Entry GetDukeTitle(CultureObject culture) =>
-            culture is null || !cultureMap.TryGetValue(culture.StringId, out var culEntry) ? noCulture.Duke : culEntry.Duke;
+        internal TitleDb.Entry GetKingTitle(CultureObject culture)
+        {
+            TitleDb.CultureEntry cultureEntry;
+            return culture != null && this.cultureMap.TryGetValue(culture.StringId, out cultureEntry) ? cultureEntry.King : this.noCulture.King;
+        }
 
-        internal Entry GetCountTitle(CultureObject culture) =>
-            culture is null || !cultureMap.TryGetValue(culture.StringId, out var culEntry) ? noCulture.Count : culEntry.Count;
+        internal TitleDb.Entry GetDukeTitle(CultureObject culture)
+        {
+            TitleDb.CultureEntry cultureEntry;
+            return culture != null && this.cultureMap.TryGetValue(culture.StringId, out cultureEntry) ? cultureEntry.Duke : this.noCulture.Duke;
+        }
 
-        internal Entry GetBaronTitle(CultureObject culture) =>
-            culture is null || !cultureMap.TryGetValue(culture.StringId, out var culEntry) ? noCulture.Baron : culEntry.Baron;
+        internal TitleDb.Entry GetCountTitle(CultureObject culture)
+        {
+            TitleDb.CultureEntry cultureEntry;
+            return culture != null && this.cultureMap.TryGetValue(culture.StringId, out cultureEntry) ? cultureEntry.Count : this.noCulture.Count;
+        }
+
+        internal TitleDb.Entry GetBaronTitle(CultureObject culture)
+        {
+            TitleDb.CultureEntry cultureEntry;
+            return culture != null && this.cultureMap.TryGetValue(culture.StringId, out cultureEntry) ? cultureEntry.Baron : this.noCulture.Baron;
+        }
+
+        internal TitleDb.Entry GetGovernorTitle(CultureObject culture)
+        {
+            TitleDb.CultureEntry cultureEntry;
+            return culture != null && this.cultureMap.TryGetValue(culture.StringId, out cultureEntry) ? cultureEntry.Governor : this.noCulture.Baron;
+        }
 
         internal string StripTitlePrefixes(Hero hero)
         {
-            var prevName = hero.Name.ToString();
-            var newName = prevName;
-
+            string str = hero.Name.ToString();
+            string s = str;
             while (true)
             {
-                foreach (var ce in cultureMap.Values)
+                foreach (TitleDb.CultureEntry cultureEntry in this.cultureMap.Values)
                 {
                     if (hero.IsFemale)
                     {
-                        newName = StripTitlePrefix(newName, ce.King.Female);
-                        newName = StripTitlePrefix(newName, ce.Duke.Female);
-                        newName = StripTitlePrefix(newName, ce.Count.Female);
-                        newName = StripTitlePrefix(newName, ce.Baron.Female);
+                        s = this.StripTitlePrefix(s, cultureEntry.King.Female);
+                        s = this.StripTitlePrefix(s, cultureEntry.Duke.Female);
+                        s = this.StripTitlePrefix(s, cultureEntry.Count.Female);
+                        s = this.StripTitlePrefix(s, cultureEntry.Baron.Female);
+                        s = this.StripTitlePrefix(s, cultureEntry.Governor.Female);
                     }
                     else
                     {
-                        newName = StripTitlePrefix(newName, ce.King.Male);
-                        newName = StripTitlePrefix(newName, ce.Duke.Male);
-                        newName = StripTitlePrefix(newName, ce.Count.Male);
-                        newName = StripTitlePrefix(newName, ce.Baron.Male);
+                        s = this.StripTitlePrefix(s, cultureEntry.King.Male);
+                        s = this.StripTitlePrefix(s, cultureEntry.Duke.Male);
+                        s = this.StripTitlePrefix(s, cultureEntry.Count.Male);
+                        s = this.StripTitlePrefix(s, cultureEntry.Baron.Male);
+                        s = this.StripTitlePrefix(s, cultureEntry.Governor.Male);
                     }
                 }
-
-                // For compatibility with savegame version 0, pre-1.1.0, as these titles left the default config:
-                newName = StripTitlePrefix(newName, "Great Khan ");
-                newName = StripTitlePrefix(newName, "Great Khanum ");
-
-                if (prevName.Equals(newName)) // Made no progress, so we're done
-                    return newName;
+                s = this.StripTitlePrefix(this.StripTitlePrefix(s, "Great Khan "), "Great Khanum ");
+                if (!str.Equals(s))
+                    str = s;
                 else
-                    prevName = newName;
+                    break;
             }
+            return s;
         }
 
         internal TitleDb()
         {
-            Path = BasePath.Name + $"Modules/{SubModule.Name}/titles.json";
 
-            cultureMap = JsonConvert.DeserializeObject<Dictionary<string, CultureEntry>>(
-                File.ReadAllText(Path),
-                new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace })
-                ?? throw new BadTitleDatabaseException("Failed to deserialize title database!");
+            Util.Log.Print("Building DB");
 
-            if (cultureMap.Count == 0)
-                throw new BadTitleDatabaseException("Title database is empty!");
-
-            // Must have a fallback culture entry.
-            if (!cultureMap.ContainsKey("default"))
-                throw new BadTitleDatabaseException("Title database must contain a fallback culture entry keyed by \"default\"!");
-
-            foreach (var i in cultureMap)
+            this.Path = BasePath.Name + "Modules/" + SubModule.Name + "/titles.json";
+            this.cultureMap = JsonConvert.DeserializeObject<Dictionary<string, TitleDb.CultureEntry>>(File.ReadAllText(this.Path), new JsonSerializerSettings()
             {
-                var (cul, entry) = (i.Key, i.Value);
+                ObjectCreationHandling = ObjectCreationHandling.Replace
+            }) ?? throw new TitleDb.BadTitleDatabaseException("Failed to deserialize title database!");
+            if (this.cultureMap.Count == 0)
+                throw new TitleDb.BadTitleDatabaseException("Title database is empty!");
+            if (!this.cultureMap.ContainsKey("default"))
+                throw new TitleDb.BadTitleDatabaseException("Title database must contain a fallback culture entry keyed by \"default\"!");
+            foreach (KeyValuePair<string, TitleDb.CultureEntry> culture in this.cultureMap)
+            {
+                string key = culture.Key;
+                TitleDb.CultureEntry cultureEntry1 = culture.Value;
+                string str = key;
+                TitleDb.CultureEntry cultureEntry2 = cultureEntry1;
+                if (cultureEntry2.King == null || cultureEntry2.Duke == null || cultureEntry2.Count == null || cultureEntry2.Baron == null || cultureEntry2.Governor == null)
+                    throw new TitleDb.BadTitleDatabaseException("All title types must be defined for culture '" + str + "'!");
+                if (string.IsNullOrWhiteSpace(cultureEntry2.King.Male) || string.IsNullOrWhiteSpace(cultureEntry2.Duke.Male) || string.IsNullOrWhiteSpace(cultureEntry2.Count.Male) || string.IsNullOrWhiteSpace(cultureEntry2.Baron.Male) || string.IsNullOrWhiteSpace(cultureEntry2.Governor.Male))
+                    throw new TitleDb.BadTitleDatabaseException("Missing at least one male variant of a title type for culture '" + str + "'");
+                if (string.IsNullOrWhiteSpace(cultureEntry2.King.Female))
+                    cultureEntry2.King.Female = cultureEntry2.King.Male;
+                if (string.IsNullOrWhiteSpace(cultureEntry2.Duke.Female))
+                    cultureEntry2.Duke.Female = cultureEntry2.Duke.Male;
+                if (string.IsNullOrWhiteSpace(cultureEntry2.Count.Female))
+                    cultureEntry2.Count.Female = cultureEntry2.Count.Male;
+                if (string.IsNullOrWhiteSpace(cultureEntry2.Baron.Female))
+                    cultureEntry2.Baron.Female = cultureEntry2.Baron.Male;
+                if (string.IsNullOrWhiteSpace(cultureEntry2.Governor.Female))
+                    cultureEntry2.Governor.Female = cultureEntry2.Governor.Male;
 
-                if (entry.King is null || entry.Duke is null || entry.Count is null || entry.Baron is null)
-                    throw new BadTitleDatabaseException($"All title types must be defined for culture '{cul}'!");
+                cultureEntry2.King.Male += " ";
+                cultureEntry2.King.Female += " ";
+                cultureEntry2.Duke.Male += " ";
+                cultureEntry2.Duke.Female += " ";
+                cultureEntry2.Count.Male += " ";
+                cultureEntry2.Count.Female += " ";
+                cultureEntry2.Baron.Male += " ";
+                cultureEntry2.Baron.Female += " ";
+                cultureEntry2.Governor.Male += " ";
+                cultureEntry2.Governor.Female += " ";
 
-                if (string.IsNullOrWhiteSpace(entry.King.Male) || string.IsNullOrWhiteSpace(entry.Duke.Male) ||
-                    string.IsNullOrWhiteSpace(entry.Count.Male) || string.IsNullOrWhiteSpace(entry.Baron.Male))
-                    throw new BadTitleDatabaseException($"Missing at least one male variant of a title type for culture '{cul}'");
+                if (str == "default")
+                    this.noCulture = cultureEntry2;
 
-                // Missing feminine titles default to equivalent masculine/neutral titles:
-                if (string.IsNullOrWhiteSpace(entry.King.Female)) entry.King.Female = entry.King.Male;
-                if (string.IsNullOrWhiteSpace(entry.Duke.Female)) entry.Duke.Female = entry.Duke.Male;
-                if (string.IsNullOrWhiteSpace(entry.Count.Female)) entry.Count.Female = entry.Count.Male;
-                if (string.IsNullOrWhiteSpace(entry.Baron.Female)) entry.Baron.Female = entry.Baron.Male;
-
-                // Commonly, we want the full title prefix, i.e. including the trailing space, so we just use
-                // such strings natively instead of constantly doing string creation churn just to append a space:
-                entry.King.Male += " ";
-                entry.King.Female += " ";
-                entry.Duke.Male += " ";
-                entry.Duke.Female += " ";
-                entry.Count.Male += " ";
-                entry.Count.Female += " ";
-                entry.Baron.Male += " ";
-                entry.Baron.Female += " ";
-
-                if (cul == "default")
-                    noCulture = entry;
+                Util.Log.Print($"Loaded culture {culture}");
+                Util.Log.Print($"Loaded culture {cultureEntry2.King.Male}");
+                Util.Log.Print($"Loaded culture {cultureEntry2.Duke.Male}");
+                Util.Log.Print($"Loaded culture {cultureEntry2.Count.Male}");
+                Util.Log.Print($"Loaded culture {cultureEntry2.Baron.Male}");
+                Util.Log.Print($"Loaded culture {cultureEntry2.Governor.Male}");
             }
         }
 
         internal void Serialize()
         {
-            // Undo our baked-in trailing space
-            foreach (var e in cultureMap.Values)
+            foreach (TitleDb.CultureEntry cultureEntry in this.cultureMap.Values)
             {
-                e.King.Male = RmEndChar(e.King.Male);
-                e.King.Female = RmEndChar(e.King.Female);
-                e.Duke.Male = RmEndChar(e.Duke.Male);
-                e.Duke.Female = RmEndChar(e.Duke.Female);
-                e.Count.Male = RmEndChar(e.Count.Male);
-                e.Count.Female = RmEndChar(e.Count.Female);
-                e.Baron.Male = RmEndChar(e.Baron.Male);
-                e.Baron.Female = RmEndChar(e.Baron.Female);
+                cultureEntry.King.Male = this.RmEndChar(cultureEntry.King.Male);
+                cultureEntry.King.Female = this.RmEndChar(cultureEntry.King.Female);
+                cultureEntry.Duke.Male = this.RmEndChar(cultureEntry.Duke.Male);
+                cultureEntry.Duke.Female = this.RmEndChar(cultureEntry.Duke.Female);
+                cultureEntry.Count.Male = this.RmEndChar(cultureEntry.Count.Male);
+                cultureEntry.Count.Female = this.RmEndChar(cultureEntry.Count.Female);
+                cultureEntry.Baron.Male = this.RmEndChar(cultureEntry.Baron.Male);
+                cultureEntry.Baron.Female = this.RmEndChar(cultureEntry.Baron.Female);
+                cultureEntry.Governor.Male = this.RmEndChar(cultureEntry.Governor.Male);
+                cultureEntry.Governor.Female = this.RmEndChar(cultureEntry.Governor.Female);
             }
-
-            File.WriteAllText(Path, JsonConvert.SerializeObject(cultureMap, Formatting.Indented));
+            File.WriteAllText(this.Path, JsonConvert.SerializeObject((object)this.cultureMap, Formatting.Indented));
         }
 
         private string RmEndChar(string s) => s.Substring(0, s.Length - 1);
 
-        private string StripTitlePrefix(string s, string prefix) => s.StartsWith(prefix) ? s.Remove(0, prefix.Length) : s;
+        private string StripTitlePrefix(string s, string prefix) => !s.StartsWith(prefix) ? s : s.Remove(0, prefix.Length);
+
+        protected string Path { get; set; }
 
         public class CultureEntry
         {
-            public readonly Entry King;
-            public readonly Entry Duke;
-            public readonly Entry Count;
-            public readonly Entry Baron;
+            public readonly TitleDb.Entry King;
+            public readonly TitleDb.Entry Duke;
+            public readonly TitleDb.Entry Count;
+            public readonly TitleDb.Entry Baron;
+            public readonly TitleDb.Entry Governor;
 
-            public CultureEntry(Entry king, Entry duke, Entry count, Entry baron)
+            public CultureEntry(
+                TitleDb.Entry king,
+                TitleDb.Entry duke,
+                TitleDb.Entry count,
+                TitleDb.Entry baron,
+                TitleDb.Entry governor)
             {
-                King = king;
-                Duke = duke;
-                Count = count;
-                Baron = baron;
+                this.King = king;
+                this.Duke = duke;
+                this.Count = count;
+                this.Baron = baron;
+                this.Governor = governor;
             }
         }
 
@@ -151,25 +198,26 @@ namespace NobleTitles
 
             public Entry(string male, string female)
             {
-                Male = male;
-                Female = female;
+                this.Male = male;
+                this.Female = female;
             }
         }
 
         public class BadTitleDatabaseException : Exception
         {
-            public BadTitleDatabaseException(string message) : base(message) { }
+            public BadTitleDatabaseException(string message)
+              : base(message)
+            {
+            }
 
-            public BadTitleDatabaseException() { }
+            public BadTitleDatabaseException()
+            {
+            }
 
-            public BadTitleDatabaseException(string message, Exception innerException) : base(message, innerException) { }
+            public BadTitleDatabaseException(string message, Exception innerException)
+              : base(message, innerException)
+            {
+            }
         }
-
-        protected string Path { get; set; }
-
-        // culture StringId => CultureEntry (contains bulk of title information, only further split by gender)
-        protected Dictionary<string, CultureEntry> cultureMap;
-
-        protected CultureEntry noCulture = new(new("King", "Queen"), new("Duke", "Duchess"), new("Count", "Countess"), new("Baron", "Baroness"));
     }
 }
